@@ -383,6 +383,46 @@ function loadExample() {
     exampleOps().forEach((op) => applyOp(doc, op));
     openDoc(normalizeDoc(serializeDoc(doc)), false);
 }
+// The sample a visitor is offered: a whole shop, on a phone and on a desktop.
+function loadSample() {
+    const doc = newDoc('Shop');
+    sampleOps().forEach((op) => applyOp(doc, op));
+    openDoc(normalizeDoc(serializeDoc(doc)), false);
+}
+
+// ---- The landing page ----
+// A bare address opens on it: what Flow is, and the ways in. Going in puts
+// #editor in the address, so a reload stays in the editor. A link that says
+// which view it wants (?simple, ?full), a sealed link and a room's link go
+// straight in.
+function landingAtStart() {
+    let q;
+    try { q = new URLSearchParams(location.search); } catch (e) { return false; }
+    if (location.hash === '#editor' || q.has('simple') || q.has('full')) return false;
+    if (location.hash.startsWith('#' + SEAL_MARK) || location.hash.startsWith('#' + LIVE_MARK)) return false;
+    return true;
+}
+function showLanding(on) {
+    state.landing = !!on;
+    document.body.classList.toggle('on-landing', state.landing);
+    $('landing').hidden = !state.landing;
+    if (state.landing) renderLanding();
+}
+function renderLanding() {
+    if (!state.landing) return;
+    const doc = state.doc, n = doc.screens.length, some = KINDS.some((k) => doc[k].length);
+    $('landingGo').textContent = tr(some ? 'Continue your workflow' : 'Start drawing');
+    const note = $('landingNow');
+    note.hidden = !some;
+    note.textContent = some ? (doc.name ? doc.name + ' · ' : '') + tn(n, '1 screen', '{n} screens') : '';
+}
+function enterEditor() {
+    if (!state.landing) return;
+    showLanding(false);
+    try { history.replaceState(history.state, '', location.pathname + location.search + '#editor'); } catch (e) { /* a file: page keeps its address */ }
+    render();
+    fitBoard();
+}
 
 // ---- Files ----
 const fileName = (doc) => (doc.name.trim().replace(/[^\p{L}\p{N} _.-]+/gu, '').trim() || 'workflow') + '.flow.json';
@@ -627,6 +667,8 @@ function onBoardDown(ev) {
     }
     const id = hit.dataset.id, kind = kindOfId(id), rec = recOf(state.doc, id);
     if (!rec) return;
+    // The ✕ on what is selected deletes it; with several selected, all of them.
+    if (handle && handle.dataset.h === 'del') { if (!state.readOnly) { if (state.selection.size > 1) removeSelected(); else removeId(id); } return; }
     if (handle && handle.dataset.h === 'link' && !state.readOnly) {
         const from = kind === 'elements' ? placeOf(rec).holder.id : id;
         state.linking = { from, fromEl: kind === 'elements' ? id : '', x0: p.x, y0: p.y, x: p.x, y: p.y };
@@ -923,7 +965,8 @@ function onAct(ev) {
     if (act === 'new') { openDoc(newDoc(''), false); say('A new workflow. Undo brings back what was here.'); }
     else if (act === 'open') $('filePick').click();
     else if (act === 'save') saveFile();
-    else if (act === 'example') { loadExample(); say('An example workflow. Undo brings back what was here.'); }
+    else if (act === 'example') { loadSample(); say('An example workflow. Undo brings back what was here.'); enterEditor(); }
+    else if (act === 'enter') enterEditor();
     else if (act === 'undo') undo();
     else if (act === 'redo') redo();
     else if (act === 'add-screen') addScreen($('addPreset').value, $('addTemplate').value);
@@ -954,7 +997,7 @@ function onAct(ev) {
     else if (act === 'pass-go') runUnseal();
     else if (act === 'lib') { state.libSure = ''; renderLibrary().then(() => openDlg('libDlg')); }
     else if (act === 'lib-keep') keepWorkflow().then((kept) => { if (kept) say('Kept. It saves itself in this browser from now on.'); renderLibrary(); });
-    else if (act === 'lib-open') openCard(id).then((ok) => { if (ok) { closeDlg('libDlg'); say('Opened from Your workflows.'); } });
+    else if (act === 'lib-open') openCard(id).then((ok) => { if (ok) { closeDlg('libDlg'); say('Opened from Your workflows.'); enterEditor(); } });
     else if (act === 'lib-del') { if (state.libSure === id) { state.libSure = ''; libDelete(id).then(renderLibrary); } else { state.libSure = id; b.textContent = tr('Delete for good'); } }
     else if (act === 'pin-toggle') pinFinding(b.dataset.key);
     else if (act === 'accept-start') { state.accepting = b.dataset.key; renderFindings(); }
@@ -990,6 +1033,8 @@ function onKey(ev) {
     const t = ev.target, inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
     const mod = ev.ctrlKey || ev.metaKey, key = ev.key.toLowerCase();
     if (mod && key === 's') { ev.preventDefault(); saveFile(); return; }
+    // On the landing page the editor's keys do nothing.
+    if (state.landing) return;
     // An open dialog owns the keys (Escape closes it by itself).
     if (document.querySelector('dialog[open]')) return;
     // The Simple view changes nothing, so no key of the editor works in it.
@@ -1055,7 +1100,7 @@ function boot() {
     $('filePick').addEventListener('change', (ev) => {
         const file = ev.target.files && ev.target.files[0];
         ev.target.value = '';
-        if (file) file.text().then(openFileFrom);
+        if (file) file.text().then((text) => { if (openFileFrom(text)) enterEditor(); });
     });
     $('dictPick').addEventListener('change', (ev) => {
         const file = ev.target.files && ev.target.files[0];
@@ -1078,6 +1123,7 @@ function boot() {
     if (state.cardId) libGet(state.cardId).then((card) => { if (!card) setCard(''); });
     $('keptTag').hidden = !state.cardId;
     state.simple = simpleAtStart();
+    showLanding(landingAtStart());
     if (state.simple) { state.viewBefore = state.view; state.view = 'flow'; }
     applyStaticI18n();
     render();

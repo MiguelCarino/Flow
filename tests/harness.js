@@ -30,7 +30,7 @@ window.suite = (fn) => window.addEventListener('load', () => setTimeout(async ()
         localStorage.removeItem('flow_live_card');
         state.cardId = '';
         // Every suite starts in English, in the full editor, on the board.
-        state.simple = false; state.view = 'board';
+        showLanding(false); state.simple = false; state.view = 'board';
         setLocale('en');
         // ...with the board on its light background, whatever this browser had chosen.
         setBoardInk(''); state.libPinned = false; state.libHeld = false;

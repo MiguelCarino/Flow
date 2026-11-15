@@ -15,6 +15,8 @@ const INK = {
     image: '#e2e8f0', imageLine: '#cbd5e1',
     decision: '#fffbeb', decisionLine: '#d97706', block: '#7c3aed',
     link: '#334155', linkBack: '#94a3b8', sel: '#2563eb',
+    // A selected link, and a way marked in Walk: Topo's gold.
+    linkSel: '#eab308',
     linkText: '#1d4ed8', alert: '#fef3c7', alertLine: '#f59e0b',
     err: '#dc2626', warn: '#d97706', chip: '#e2e8f0', chipOn: '#0f172a'
 };
@@ -139,7 +141,13 @@ function selectionSvg(u) {
     let s = '';
     state.selection.forEach((entry) => {
         const rec = recOf(doc, entry.id);
-        if (!rec || entry.type === 'links' || entry.type === 'sources' || entry.type === 'sizes') return;
+        if (!rec || entry.type === 'sources' || entry.type === 'sizes') return;
+        // A selected link has no box: its ✕ sits over the middle of it.
+        if (entry.type === 'links') {
+            const g = linkGeometry(rec, u);
+            if (g && !state.readOnly) s += `<g class="sel-layer" data-id="${rec.id}">${deleteDisc(g.mid.x, g.mid.y - 24 * u, u)}</g>`;
+            return;
+        }
         if (entry.type === 'styles' || entry.type === 'langs' || entry.type === 'words') return;
         // The flow view shows stops and links only.
         if (state.view === 'flow' && !isStopId(rec.id)) return;
@@ -163,9 +171,17 @@ function selectionSvg(u) {
             if (link) s += `<g data-h="link"><title>Drag to the stop this leads to</title><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${INK.sel}"/>`
                 + `<path d="M ${n1(cx - 4 * u)} ${n1(cy)} H ${n1(cx + 4 * u)} M ${n1(cx + 1 * u)} ${n1(cy - 3 * u)} L ${n1(cx + 4 * u)} ${n1(cy)} L ${n1(cx + 1 * u)} ${n1(cy + 3 * u)}" fill="none" stroke="#ffffff" stroke-width="1.5" vector-effect="non-scaling-stroke" pointer-events="none"/></g>`;
         }
+        // The ✕ that deletes what is selected, as on Topo's map.
+        if (!state.readOnly) s += deleteDisc(box.w + 18 * u, box.h / 2 - 26 * u, u);
         s += '</g>';
     });
     return s;
+}
+// Topo's disc button: a red disc in a white ring with a white ✕.
+function deleteDisc(x, y, u) {
+    return `<g class="node-delete" data-h="del" transform="translate(${n1(x)} ${n1(y)})"><title>${esc(tr('Delete'))}</title>`
+        + `<circle r="${n1(7.5 * u)}" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`
+        + `<text y="${n1(3 * u)}" text-anchor="middle" font-size="${n1(9 * u)}" font-weight="900" fill="#ffffff" font-family="sans-serif" pointer-events="none">✕</text></g>`;
 }
 
 function screenSvg(screen, u) {
@@ -388,7 +404,7 @@ function linksSvg(u) {
         const g = linkGeometry(link, u);
         if (!g) return;
         const marked = !!_trail && _trail.links.has(link.id);
-        const sel = inSelection(link.id) || marked, colour = sel ? INK.sel : link.kind === 'back' ? INK.linkBack : INK.link;
+        const sel = inSelection(link.id) || marked, colour = sel ? INK.linkSel : link.kind === 'back' ? INK.linkBack : INK.link;
         const dash = link.kind === 'system' ? ' stroke-dasharray="7 5"' : link.kind === 'auto' ? ' stroke-dasharray="2 5"' : '';
         const bx = g.tip.x - g.dir.x * 11 * u, by = g.tip.y - g.dir.y * 11 * u, px = -g.dir.y * 5 * u, py = g.dir.x * 5 * u;
         s += `<g class="link${sel ? ' sel' : ''}${marked ? ' marked' : ''}" data-id="${link.id}"${dimAttr(link.id)}>`
@@ -769,6 +785,7 @@ function render(opts = {}) {
     // The background button's hint is Flow's word, and follows its language.
     $('boardInkBtn').title = tr(INK_NEXT_TITLE[state.boardInk || '']);
     renderSimple();
+    renderLanding();
     renderPlay();
     if (!opts.typing) renderTestRail();
     if (!opts.typing || !state.test) renderTest();

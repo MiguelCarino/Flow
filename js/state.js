@@ -44,6 +44,8 @@ const state = {
     base: '',
     test: null,
     casesOpen: false,
+    // landing: the landing page is over the editor. View only.
+    landing: false,
     // simple: the Simple view is on (js/simple.js). View only.
     simple: false,
     viewBefore: 'board',

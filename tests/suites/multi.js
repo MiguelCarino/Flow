@@ -19,7 +19,7 @@ suite(async (ok, eq) => {
     press(frame(cart), { ctrl: true });
     eq('Ctrl and a press takes one away', ids(), [receipt.id]);
     press(frame(cart), { shift: true });
-    ok('with several selected there are no handles', !q('.sel-layer [data-h]') && board.querySelectorAll('.sel-layer').length === 2);
+    ok('with several selected there are no handles', !q('.sel-layer [data-h="link"], .sel-layer [data-h="resize"]') && board.querySelectorAll('.sel-layer').length === 2);
     ok('and the rail says how many', document.querySelector('#railProps .rail-title').textContent === '2 selected');
     eq('picking is not a change', sent.length, 0);
 

@@ -305,8 +305,7 @@ body.simple #liveTag { display: none !important; }
 .map-ink #board .link rect[stroke="#334155"] { stroke: var(--mi-fg); }
 .map-ink #board .link rect[stroke="#94a3b8"] { stroke: var(--mi-line); }
 .map-ink #board .link text { fill: var(--mi-fg); }
-.map-ink #board .link.sel path[stroke="#2563eb"], .map-ink #board .link.sel rect[stroke="#2563eb"] { stroke: #60a5fa; }
-.map-ink #board .link.sel polygon[fill="#2563eb"] { fill: #60a5fa; }
+/* A selected link is Topo's gold on every background. */
 /* Decisions sit on the board, not on a screen. */
 .map-ink #board .decision polygon[fill="#fffbeb"] { fill: color-mix(in srgb, #f59e0b 22%, var(--mi-bg)); }
 .map-ink #board .decision text { fill: var(--mi-fg); }
@@ -321,3 +320,31 @@ body.simple #liveTag { display: none !important; }
 .lib-ghost.ok { border-color: #16a34a; border-style: solid; }
 .lib-ghost .lib-pic { width: 100%; height: 100%; background: none; }
 body.tile-dragging, body.tile-dragging * { cursor: grabbing !important; }
+
+/* ---- The ✕ on what is selected (deleteDisc, js/ui.js) ---- */
+.flow-svg .node-delete { cursor: pointer; }
+.flow-svg .node-delete:hover circle { fill: #b91c1c; }
+
+/* ---- The landing page ---- */
+.landing { position: fixed; inset: var(--nav-h) 0 0 0; z-index: 900; overflow-y: auto; background: var(--stage-grad), var(--bg); color: var(--text); }
+.landing[hidden] { display: none; }
+.landing-inner { width: min(760px, 100%); margin: 0 auto; padding: clamp(32px, 9vh, 96px) 20px 56px; display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; }
+.landing-mark { display: flex; align-items: center; gap: 14px; }
+.landing-mark img.mk-color, :root[data-carino-theme="color"] .landing-mark img.mk-gold { display: none; }
+:root[data-carino-theme="color"] .landing-mark img.mk-color { display: block; }
+.flowline { width: 220px; height: 44px; overflow: visible; }
+.flowline .trace { fill: none; stroke: var(--border); stroke-width: 1.5; }
+.flowline .pulse { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 14 86; animation: flow-pulse 3.2s linear infinite; }
+.flowline .stops rect { fill: var(--bg-card); stroke: var(--accent); stroke-width: 1.5; }
+@keyframes flow-pulse { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .flowline .pulse { animation: none; stroke-dasharray: none; opacity: 0.5; } }
+.landing-title { margin: 0; font-family: var(--display); font-size: clamp(1.7rem, 4.6vw, 2.9rem); font-weight: 800; line-height: 1.12; letter-spacing: -0.01em; }
+.landing-title .gold { background: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
+:root[data-carino-theme="color"] .landing-title .gold { background: none; color: var(--accent); }
+.landing-lede { margin: 0; max-width: 620px; font-size: var(--fs-lg); line-height: 1.55; color: var(--text-sec); }
+.landing-local { display: block; margin-top: 10px; font-size: var(--fs-sec); color: var(--text-muted); }
+.landing-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+.landing-now { margin: 0; font-family: var(--mono); font-size: var(--fs-sm); color: var(--text-muted); }
+/* While the landing page is up, the editor's own controls are out of the bar. */
+body.on-landing .flow-actions { display: none !important; }
+@media (max-width: 640px) { .landing-acts { flex-direction: column; align-self: stretch; } .landing-acts .btn { justify-content: center; } }

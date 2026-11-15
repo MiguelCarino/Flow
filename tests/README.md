@@ -81,3 +81,4 @@ the app join one room; the page prints PASS and FAIL lines.
 | `i18ncover` | every state of the editor in every language: no word without a translation (real clock) |
 | `simple` | the Simple view changes nothing; a tap opens a screen; pinch to zoom |
 | `perf` | the budget: 60 screens and 3,000 elements stay usable |
+| `landing` | the landing page and when it is skipped; the example; the ✕ that deletes; link colours |

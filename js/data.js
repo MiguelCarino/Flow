@@ -166,3 +166,104 @@ function exampleOps() {
         add('links', { id: id('links'), from: cart, fromEl: btnPay, to: receipt, label: 'Taps Pay' })
     ];
 }
+
+// The sample a visitor is offered (loadSample, js/app.js): a small shop from
+// signing in to the receipt, with the way back when a card is declined and
+// the way round a forgotten password. Its main screens are drawn twice, for
+// a phone and for a desktop, to show that the workflow is drawn once for
+// both. It has nothing for the checks to report: a test holds that.
+function sampleOps() {
+    const id = nextId, ops = [];
+    const add = (kind, rec) => { ops.push({ op: 'add', kind, rec }); return rec.id; };
+    const phone = sizePreset('phone'), desk = sizePreset('desktop');
+    const repo = add('sources', { id: id('sources'), kind: 'code', label: 'Shop app repository', url: 'https://example.com/shop-app' });
+    const design = add('sources', { id: id('sources'), kind: 'vector', label: 'Shop design file', url: 'https://example.com/shop-design' });
+    const screen = (name, x, y, extra) => add('screens', Object.assign({ id: id('screens'), name, x, y, source: repo }, extra));
+    const size = (scr, p, z) => add('sizes', { id: id('sizes'), screen: scr, name: p.name, w: p.w, h: p.h, input: p.input, distance: p.distance, z });
+    // On a phone everything spans the screen between its margins; on a
+    // desktop it sits in a column in the middle.
+    const P = { x: 32, w: 326, pin: 'both' }, D = { x: 680, w: 560, pin: 'center' };
+    const el = (sz, col, type, y, h, text, extra = {}) => add('elements', Object.assign({ id: id('elements'), size: sz, type, x: col.x, y, w: col.w, h, text, fs: ELEMENT_KIT[type].fs, pinH: col.pin, z: y }, extra));
+    const bar = (sz, w, type, y, h, text, extra = {}) => add('elements', Object.assign({ id: id('elements'), size: sz, type, x: 0, y, w, h, text, fs: ELEMENT_KIT[type].fs, pinH: 'both', z: y }, extra));
+    const link = (from, to, extra) => add('links', Object.assign({ id: id('links'), from, to }, extra));
+
+    // ---- Sign in ----
+    const signIn = screen('Sign in', 0, 0, { start: true, path: '/sign-in', at: 'src/screens/SignIn' });
+    const sIn = size(signIn, phone, 1), sInD = size(signIn, desk, 2);
+    let btnIn, lnkForgot;
+    [[sIn, P, 96], [sInD, D, 300]].forEach(([sz, col, top], i) => {
+        el(sz, col, 'heading', top, 40, 'Welcome back', { key: 'auth.title' });
+        el(sz, col, 'input', top + 72, 48, 'Email', { name: 'Email', key: 'auth.email' });
+        el(sz, col, 'input', top + 136, 48, 'Password', { name: 'Password', key: 'auth.password' });
+        const b = el(sz, col, 'button', top + 216, 48, 'Sign in', { name: 'Sign in', key: 'auth.submit' });
+        const l = el(sz, col, 'link', top + 280, 44, 'Forgot your password?', { name: 'Forgot password', key: 'auth.forgot' });
+        if (!i) { btnIn = b; lnkForgot = l; }
+    });
+
+    // ---- Reset password ----
+    const forgot = screen('Reset password', 0, 1160, { path: '/reset' });
+    const sForgot = size(forgot, phone, 1);
+    el(sForgot, P, 'heading', 96, 40, 'Reset your password');
+    el(sForgot, P, 'text', 152, 48, 'We will email you a link to choose a new one.');
+    el(sForgot, P, 'input', 216, 48, 'Email', { name: 'Email' });
+    const btnSend = el(sForgot, P, 'button', 296, 48, 'Send the link', { name: 'Send the link' });
+
+    // ---- Products ----
+    const products = screen('Products', 1160, 0, { path: '/products', at: 'src/screens/Products' });
+    const sProd = size(products, phone, 1), sProdD = size(products, desk, 2);
+    bar(sProd, phone.w, 'topbar', 0, 56, 'Shop');
+    el(sProd, P, 'input', 72, 48, 'Search products', { name: 'Search' });
+    const listP = el(sProd, P, 'list', 136, 224, 'Running shoes\nRain jacket\nDay pack\nWater bottle', { name: 'Products' });
+    bar(sProd, phone.w, 'tabbar', phone.h - 64, 64, 'Shop\nCart\nAccount', { name: 'Main tabs', pinV: 'bottom' });
+    bar(sProdD, desk.w, 'topbar', 0, 56, 'Shop');
+    el(sProdD, D, 'input', 96, 48, 'Search products', { name: 'Search' });
+    el(sProdD, D, 'table', 168, 240, 'Product | Price\nRunning shoes | $89\nRain jacket | $120\nDay pack | $65\nWater bottle | $18', { name: 'Products' });
+
+    // ---- Product ----
+    const product = screen('Product', 1740, 0, { path: '/products/running-shoes' });
+    const sOne = size(product, phone, 1);
+    bar(sOne, phone.w, 'topbar', 0, 56, 'Running shoes');
+    el(sOne, P, 'image', 72, 240, 'A photo of the running shoes', { source: design, at: 'Product / Hero' });
+    el(sOne, P, 'heading', 328, 40, 'Running shoes');
+    el(sOne, P, 'text', 376, 32, '$89, with free delivery');
+    const btnAdd = el(sOne, P, 'button', 432, 48, 'Add to cart', { name: 'Add to cart' });
+
+    // ---- Cart ----
+    const cart = screen('Cart', 2320, 0, { path: '/cart', at: 'src/screens/Cart' });
+    const sCart = size(cart, phone, 1), sCartD = size(cart, desk, 2);
+    let btnPay;
+    [[sCart, P, 96], [sCartD, D, 200]].forEach(([sz, col, top], i) => {
+        el(sz, col, 'heading', top, 40, 'Your cart', { key: 'cart.title' });
+        el(sz, col, 'list', top + 64, 112, 'Running shoes, $89\nDelivery, free', { name: 'Order lines' });
+        el(sz, col, 'text', top + 192, 32, 'Total $89');
+        const b = el(sz, col, 'button', top + 248, 48, 'Pay', { name: 'Pay', key: 'cart.pay' });
+        if (!i) btnPay = b;
+    });
+
+    // ---- Receipt, and the card declined ----
+    const receipt = screen('Receipt', 3480, 0, { end: true, path: '/receipt' });
+    const sRec = size(receipt, phone, 1);
+    el(sRec, P, 'heading', 96, 40, 'Thank you');
+    el(sRec, P, 'text', 152, 32, 'Order 1042 is on its way.');
+    const declined = screen('Payment declined', 2320, 1160, { path: '/cart/declined' });
+    const sDec = size(declined, phone, 1);
+    el(sDec, P, 'heading', 96, 40, 'Payment declined');
+    el(sDec, P, 'alert', 152, 72, 'Your card was declined. Try another card.');
+    const btnRetry = el(sDec, P, 'button', 248, 48, 'Try again', { name: 'Try again' });
+
+    // ---- Decisions, and the ways between ----
+    const askIn = add('decisions', { id: id('decisions'), name: 'Is the password right?', x: 640, y: 344 });
+    const askPay = add('decisions', { id: id('decisions'), name: 'Is the card accepted?', x: 2900, y: 344 });
+    link(signIn, askIn, { fromEl: btnIn, label: 'Taps Sign in' });
+    link(askIn, products, { kind: 'system', cond: 'Yes' });
+    link(askIn, signIn, { kind: 'system', cond: 'No', label: 'Shows the error' });
+    link(signIn, forgot, { fromEl: lnkForgot, label: 'Taps Forgot your password?' });
+    link(forgot, signIn, { fromEl: btnSend, label: 'Taps Send the link' });
+    link(products, product, { fromEl: listP, label: 'Taps a product' });
+    link(product, cart, { fromEl: btnAdd, label: 'Taps Add to cart' });
+    link(cart, askPay, { fromEl: btnPay, label: 'Taps Pay' });
+    link(askPay, receipt, { kind: 'system', cond: 'Yes' });
+    link(askPay, declined, { kind: 'system', cond: 'No', label: 'Shows why' });
+    link(declined, cart, { fromEl: btnRetry, kind: 'back', label: 'Taps Try again' });
+    return ops;
+}

@@ -1,0 +1,104 @@
+// The landing page, the sample it offers, the ✕ on what is selected, and a
+// selected link's colour.
+suite(async (ok, eq) => {
+    const landing = document.getElementById('landing'), board = document.getElementById('board');
+    const visible = (el) => el.offsetParent !== null;
+    const setAddress = (tail) => history.replaceState(null, '', location.pathname + tail);
+
+    // ---- where a visit starts ----
+    const at = (tail) => { setAddress(tail); return landingAtStart(); };
+    eq('a bare address opens on the landing page; a link that says where it is going does not', [at(''), at('?lang=es'), at('#editor'), at('?simple'), at('?full'), at('#e~abc'), at('#r~room~key~token')], [true, true, false, false, false, false, false]);
+    setAddress('');
+
+    showLanding(true);
+    ok('the landing page covers the editor', !landing.hidden && landing.getBoundingClientRect().height > 300 && landing.getBoundingClientRect().width === innerWidth && document.body.classList.contains('on-landing') && getComputedStyle(landing).position === 'fixed');
+    ok('it says what Flow is, and that nothing leaves the tab', /Every screen, and every way between them/.test(landing.textContent) && /no server, no upload, no account/.test(landing.textContent));
+    ok('the editor\'s controls are out of the bar meanwhile', !visible(document.getElementById('undoBtn')) && !visible(document.getElementById('fileMenuBtn')));
+    eq('the ways in', Array.from(landing.querySelectorAll('.landing-acts [data-act]')).map((b) => b.dataset.act), ['enter', 'example', 'open', 'lib']);
+    eq('with nothing drawn yet, the way in is to start', [document.getElementById('landingGo').textContent, document.getElementById('landingNow').hidden], ['Start drawing', true]);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true }));
+    ok('the editor\'s keys do nothing under it', state.selection.size === 0);
+
+    document.getElementById('landingGo').click();
+    eq('Start drawing goes into the editor, and the address says so', [state.landing, landing.hidden, location.hash, visible(document.getElementById('undoBtn'))], [false, true, '#editor', true]);
+    ok('a reload from there stays in the editor', landingAtStart() === false);
+    addScreen('phone'); setF(state.doc.screens[0].id, 'name', 'Home');
+    change({ op: 'set', kind: 'doc', id: '', field: 'name', value: 'My app' });
+    setAddress(''); showLanding(true);
+    eq('with something drawn, the way in is to carry on, and it says what is there', [document.getElementById('landingGo').textContent, document.getElementById('landingNow').textContent], ['Continue your workflow', 'My app · 1 screen']);
+    setLocale('es');
+    ok('the landing page is in Flow\'s language', /Cada pantalla, y cada camino entre ellas/.test(landing.textContent) && document.getElementById('landingGo').textContent === 'Continuar con tu flujo');
+    setLocale('en');
+
+    // ---- the sample ----
+    landing.querySelector('[data-act="example"]').click();
+    const doc = state.doc;
+    eq('Open the example loads the sample and goes in', [state.landing, doc.name, location.hash], [false, 'Shop', '#editor']);
+    eq('a shop from signing in to the receipt', [doc.screens.map((s) => s.name).sort(), doc.decisions.map((d) => d.name).sort(), doc.links.length], [['Cart', 'Payment declined', 'Product', 'Products', 'Receipt', 'Reset password', 'Sign in'], ['Is the card accepted?', 'Is the password right?'], 11]);
+    const desktop = doc.sizes.filter((z) => z.name === 'Desktop');
+    eq('its main screens are drawn for a desktop too, used with a mouse', [desktop.map((z) => recOf(doc, z.screen).name).sort(), desktop.every((z) => z.w === 1920 && z.h === 1080 && z.input === 'pointer')], [['Cart', 'Products', 'Sign in'], true]);
+    ok('with something on each desktop drawing', desktop.every((z) => elementsOf(doc, z.id).length >= 3));
+    eq('it has nothing for the checks to report', findFindings(doc).map((f) => f.text), []);
+    eq('every screen can be reached and the workflow has its ways through', [testCases(doc).map((c) => c.name), findPaths(doc, doc.screens.find((s) => s.start).id, doc.screens.find((s) => s.end).id).length], [['Sign in to Receipt'], 1]);
+    ok('it uses two sources, and keys for a dictionary', doc.sources.length === 2 && keysInUse(doc).size >= 5);
+    const signIn = doc.screens.find((s) => s.name === 'Sign in');
+    showSize(sizesOf(doc, signIn.id)[1].id);
+    ok('the desktop drawing shows when its size is chosen', board.querySelector(`.screen[data-id="${signIn.id}"] .frame`).getAttribute('width') === '1920' && findFindings(doc).length === 0);
+    showSize(sizesOf(doc, signIn.id)[0].id);
+    undo();
+    eq('one undo brings back what was open before the sample', state.doc.name, 'My app');
+    redo(); fitBoard();
+
+    // ---- the ✕ on what is selected ----
+    const d = state.doc, q = (sel) => board.querySelector(sel);
+    const press = (target) => { pointer('pointerdown', target, target); pointer('pointerup', board, target); };
+    const receipt = d.screens.find((s) => s.name === 'Receipt'), thanks = d.elements.find((e) => e.text === 'Thank you');
+    ok('nothing selected, no ✕', !q('.node-delete'));
+    selectId(thanks.id);
+    const disc = () => q('.sel-layer .node-delete');
+    ok('a selected element has a ✕: a red disc in a white ring, as on Topo\'s map', !!disc() && disc().querySelector('circle').getAttribute('fill') === '#dc2626' && disc().querySelector('circle').getAttribute('stroke') === '#ffffff' && disc().querySelector('text').textContent === '✕');
+    const sent = []; state.opSinks.push((ops) => sent.push(ops));
+    press(disc());
+    eq('a press on it deletes the element, as one step', [!!recOf(d, thanks.id), state.selection.size, sent.length], [false, 0, 1]);
+    undo();
+    for (const [what, id] of [['a screen', receipt.id], ['a decision', d.decisions[0].id], ['a link', d.links[0].id]]) {
+        selectId(id);
+        ok(`${what} has one too`, board.querySelectorAll('.sel-layer .node-delete').length === 1);
+    }
+    selectId(d.links[0].id); press(disc());
+    ok('on a link it deletes the link', !recOf(d, d.links[0] ? 'lnk_none' : '') && d.links.length === 10);
+    undo();
+    selectId(receipt.id); press(disc());
+    ok('on a screen it deletes the screen and what hung off it', !recOf(d, receipt.id) && !recOf(d, thanks.id));
+    undo();
+    setSelection([selEntry('elements', thanks.id), selEntry('screens', d.screens.find((s) => s.name === 'Product').id)]); render();
+    eq('with several selected, each has one', board.querySelectorAll('.sel-layer .node-delete').length, 2);
+    const n = d.screens.length;
+    press(disc());
+    ok('and any of them deletes all that is selected', d.screens.length === n - 1 && !recOf(d, thanks.id));
+    undo();
+    state.readOnly = true; selectId(receipt.id);
+    ok('a workflow open to read only has no ✕', !q('.node-delete'));
+    state.readOnly = false; render();
+    setView('flow'); selectId(receipt.id);
+    ok('the flow view has it too', board.querySelectorAll('.sel-layer .node-delete').length === 1);
+    setView('board');
+
+    // ---- a link's colour ----
+    const first = d.links.find((l) => l.kind === 'action'), line = (l) => q(`.link[data-id="${l.id}"] path[stroke]:not([stroke-opacity])`);
+    selectId('');
+    const stroke = () => getComputedStyle(line(first)).stroke;
+    eq('a link is slate on the light board', stroke(), 'rgb(51, 65, 85)');
+    const inks = {};
+    ['dark', 'blue', 'pcb'].forEach((ink) => { setBoardInk(ink); inks[ink] = stroke(); });
+    eq('and takes each background\'s own light ink', inks, { dark: 'rgb(250, 250, 250)', blue: 'rgb(255, 255, 255)', pcb: 'rgb(236, 253, 243)' });
+    selectId(first.id);
+    const gold = 'rgb(234, 179, 8)', selected = {};
+    ['', 'dark', 'blue', 'pcb'].forEach((ink) => { setBoardInk(ink); selected[ink || 'light'] = [stroke(), getComputedStyle(q(`.link[data-id="${first.id}"] polygon`)).fill]; });
+    eq('selected, it is Topo\'s gold on every background, line and arrow', selected, { light: [gold, gold], dark: [gold, gold], blue: [gold, gold], pcb: [gold, gold] });
+    setBoardInk('');
+    selectId('');
+    state.walk = { from: d.screens.find((s) => s.start).id, to: d.screens.find((s) => s.end).id, pick: 0 }; render();
+    ok('a way marked in Walk is gold too', getComputedStyle(board.querySelector('.link.marked path[stroke]:not([stroke-opacity])')).stroke === gold);
+    ok('a picture keeps the plain colours', (() => { state.walk.pick = -1; const svg = svgOfStops(exportStops('all'), 'board'); return !/#eab308|node-delete/.test(svg); })());
+});

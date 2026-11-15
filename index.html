@@ -79,6 +79,40 @@
         </div>
     </div>
 
+    <!-- The landing page: what a bare address opens on. It lies over the
+         editor, which is already running under it, and goes away when the
+         visitor goes in (enterEditor, js/app.js). -->
+    <div id="landing" class="landing" hidden>
+        <div class="landing-inner">
+            <div class="landing-mark" aria-hidden="true">
+                <img class="mk-gold" src="logo.svg" alt="" width="58" height="58" decoding="async">
+                <img class="mk-color" src="logo-color.svg" alt="" width="58" height="58" decoding="async">
+                <!-- Three screens and the way through them, a pulse running along it. -->
+                <svg class="flowline" viewBox="0 0 220 44" preserveAspectRatio="xMidYMid meet">
+                    <polyline class="trace" pathLength="100" points="26,22 78,22 98,10 122,10 142,22 194,22" />
+                    <polyline class="pulse" pathLength="100" points="26,22 78,22 98,10 122,10 142,22 194,22" />
+                    <g class="stops">
+                        <rect x="6" y="6" width="20" height="32" rx="3" />
+                        <rect x="100" y="-6" width="20" height="32" rx="3" />
+                        <rect x="194" y="6" width="20" height="32" rx="3" />
+                    </g>
+                </svg>
+            </div>
+            <h1 class="landing-title"><span>Every screen, and every way between them.</span><br><span class="gold">Draw it once, and it checks itself.</span></h1>
+            <p class="landing-lede">
+                <span>Screens at any size, the decisions between them and what takes the user from one to the next, with dead ends and unreachable screens found for you, and a report to hand over.</span>
+                <span class="landing-local">It runs in this tab: no server, no upload, no account.</span>
+            </p>
+            <div class="landing-acts">
+                <button type="button" class="btn btn-primary" id="landingGo" data-act="enter">Start drawing</button>
+                <button type="button" class="btn btn-ghost" data-act="example">Open the example</button>
+                <button type="button" class="btn btn-ghost" data-act="open">Open a file…</button>
+                <button type="button" class="btn btn-ghost" data-act="lib">Your workflows…</button>
+            </div>
+            <p id="landingNow" class="landing-now" hidden></p>
+        </div>
+    </div>
+
     <!-- Workspace shell (carino-ui.css): the rail on the left, the board as the
          pane. At 900px and below carino-ui.js turns the rail into a drawer. -->
     <div class="ws flow-ws">

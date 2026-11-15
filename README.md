@@ -92,7 +92,7 @@ Scripts load in this order: `state -> i18n -> model -> data -> diagnostics -> ui
 | `js/i18n.js` | Flow's own language: the lookup, and the words a client sees. |
 | `js/words-*.js` | The rest of Flow's words, a file per language. |
 | `js/model.js` | The document, its fields and the operations that change it. No DOM. |
-| `js/data.js` | The kit: size presets, the elements, the example. |
+| `js/data.js` | The kit: size presets, the elements, the example, and the tests' small fixture. |
 | `js/diagnostics.js` | The checks. |
 | `js/ui.js` | Drawing the board and the rail. |
 | `js/lang.js` | The workflow's languages and dictionaries. |
