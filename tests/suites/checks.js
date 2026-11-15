@@ -18,12 +18,14 @@ suite(async (ok, eq) => {
     undo(); undo();
 
     const island = addScreen('phone');
-    eq('a new screen nothing leads to, and that leads nowhere', keys(), ['dead-end', 'unreached']);
+    eq('a new screen nothing leads to, that leads nowhere, and that nobody touched', keys(), ['dead-end', 'screen-untouched', 'unreached']);
+    setF(island, 'name', 'Help');
+    eq('given a name, it is no longer as it was added', keys(), ['dead-end', 'unreached']);
     setF(island, 'end', true);
     eq('marked as an end, it is only unreachable', keys(), ['unreached']);
     addLink(receipt.id, island);
     eq('an end that leads on, and a way with no words', keys(), ['end-leads-on', 'link-unnamed']);
-    undo(); undo(); undo();
+    undo(); undo(); undo(); undo();
     eq('back to nothing', keys(), []);
 
     const yes = state.doc.links.find((l) => l.from === ask.id && l.cond === 'Yes');

@@ -53,6 +53,8 @@ function setCard(id) {
     try { if (id) localStorage.setItem(LIB_ID_KEY, id); else localStorage.removeItem(LIB_ID_KEY); } catch (e) { /* no storage */ }
     const tag = $('keptTag');
     if (tag) tag.hidden = !state.cardId;
+    const keep = $('keepMenu');
+    if (keep) keep.hidden = !!state.cardId || state.readOnly || !!state.live;
 }
 const cardOf = (id, created) => ({ id, name: state.doc.name || 'Untitled', doc: fileEnvelope(state.doc), created: created || Date.now(), updated: Date.now() });
 // Keep the open workflow. From now on it saves itself.
@@ -96,16 +98,49 @@ async function openCard(id) {
     return true;
 }
 
-async function renderLibrary() {
-    const box = $('libList'), cards = await libList();
-    const n = (doc, k) => (doc && doc.doc && Array.isArray(doc.doc[k]) ? doc.doc[k].length : 0);
-    box.innerHTML = cards.length ? cards.map((c) => `<div class="lib-card${c.id === state.cardId ? ' on' : ''}" data-card="${esc(c.id)}">`
-        + `<div class="lib-main"><p class="lib-name">${esc(c.name || tr('Untitled'))}${c.id === state.cardId ? ` <span class="size-on">${esc(tr('open'))}</span>` : ''}</p>`
-        + `<p class="pf-note" data-raw>${esc([tn(n(c.doc, 'screens'), '1 screen', '{n} screens'), tn(n(c.doc, 'links'), '1 link', '{n} links')].join(', ') + '. ' + tr('Changed {x}.', { x: new Date(c.updated).toLocaleString() }))}</p></div>`
-        + `<div class="lib-acts">${c.id === state.cardId ? '' : `<button type="button" class="btn btn-ghost sm" data-act="lib-open" data-id="${esc(c.id)}">Open</button>`}`
-        + `<button type="button" class="btn btn-ghost sm danger" data-act="lib-del" data-id="${esc(c.id)}">Delete</button></div></div>`).join('')
-        : '<p class="pf-note">Nothing is kept yet. A workflow you keep saves itself here on every change, in this browser only.</p>';
-    translateChrome(box);
-    $('libKeep').hidden = !!state.cardId || state.readOnly || !!state.live;
-    $('libKeptNote').hidden = !state.cardId;
+// ---- The binder ----
+// Every kept workflow in one file: to keep safe, or to move to another
+// browser. A binder is opened like any file (openAnyFile, js/app.js) and its
+// workflows are added to the ones kept here; one that is here already, the
+// same to the letter, is not added twice.
+//
+//   { kind: 'flowbinder', version: 1, made, workflows: [ a file's envelope, ... ] }
+const BINDER_KIND = 'flowbinder';
+const isBinder = (data) => !!data && typeof data === 'object' && data.kind === BINDER_KIND && Array.isArray(data.workflows);
+async function binderEnvelope() {
+    await flushCard();
+    const cards = await libList();
+    return { kind: BINDER_KIND, version: 1, made: new Date().toISOString(), workflows: cards.map((c) => c.doc) };
+}
+async function exportBinder() {
+    const env = await binderEnvelope();
+    if (!env.workflows.length) { say('There is no kept workflow to back up yet.', true); return null; }
+    const name = `Flow binder ${env.made.slice(0, 10)}.flowbinder.json`;
+    saveBlob(new Blob([JSON.stringify(env, null, 2) + '\n'], { type: 'application/json' }), name);
+    say(tr('Saved {n} as {x}.', { n: tn(env.workflows.length, '1 workflow', '{n} workflows'), x: name }));
+    return { name, count: env.workflows.length };
+}
+// -> { added, same, bad }: how many were added, were here already, or were not workflows.
+async function importBinder(data) {
+    const out = { added: 0, same: 0, bad: 0 };
+    const have = new Set((await libList()).map((c) => JSON.stringify(c.doc && c.doc.doc)));
+    for (const env of data.workflows) {
+        const res = openFileText(JSON.stringify(env));
+        if (res.error || res.part) { out.bad++; continue; }
+        // A newer Flow's workflow is kept as it came; this build would trim it.
+        const kept = res.readOnly ? env : fileEnvelope(res.doc), text = JSON.stringify(kept.doc);
+        if (have.has(text)) { out.same++; continue; }
+        const now = Date.now();
+        if (!await libPut({ id: 'card_' + now.toString(36) + idRandom(), name: (kept.doc && kept.doc.name) || kept.name || 'Untitled', doc: kept, created: now, updated: now })) { out.bad++; continue; }
+        have.add(text); out.added++;
+    }
+    return out;
+}
+// One kept workflow as a file of its own.
+async function saveCardFile(id) {
+    if (id === state.cardId) await flushCard();
+    const card = await libGet(id);
+    if (!card) return false;
+    saveBlob(new Blob([JSON.stringify(card.doc, null, 2) + '\n'], { type: 'application/json' }), safeName(card.name) + '.flow.json');
+    return true;
 }

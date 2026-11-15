@@ -8,7 +8,8 @@ suite(async (ok, eq) => {
     SCREEN_TEMPLATES.forEach((t) => ['phone', 'tablet', 'laptop', 'desktop'].forEach((p) => {
         openDoc(newDoc(''), false);
         const id = addScreen(p, t.key); setF(id, 'end', true);
-        eq(`${t.name} on a ${p} has nothing to report`, keys(), []);
+        // A blank screen is as it was when it was added, and says so; a template is not.
+        eq(`${t.name} on a ${p} has nothing to report`, keys(), t.key === 'blank' ? ['screen-untouched'] : []);
     }));
     openDoc(newDoc(''), false);
     const phone = addScreen('phone'); setF(phone, 'end', true);

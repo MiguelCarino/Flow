@@ -127,6 +127,21 @@ The key is PBKDF2-SHA-256 of the passphrase with that salt, 310,000 rounds.
 The plaintext is 1 byte (1 when what follows is raw deflate, else 0) and the
 file's JSON.
 
+## Binders
+
+A binder is every kept workflow in one file, `*.flowbinder.json`:
+
+    { "kind": "flowbinder", "version": 1, "made": "<ISO date>", "workflows": [ <a file's envelope>, ... ] }
+
+Each entry is exactly what Save a copy writes for that workflow.
+
+## Plain links
+
+A plain link is `https://flow.carino.systems/#~` followed by base64url of the
+file's JSON as raw deflate. A browser that cannot deflate writes `#u~` and
+base64url of the JSON itself. Nothing in it is secret: whoever has the link
+has the workflow.
+
 ## Versions
 
 A document with a `v` higher than the reader knows must be opened read-only

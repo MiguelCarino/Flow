@@ -36,21 +36,44 @@ suite(async (ok, eq) => {
     eq('an empty workflow is not kept just for being open', await (async () => { await openCard(second.id); openDoc(newDoc(''), false); await openCard(id); return (await libList()).length; })(), 2);
     eq('a card that is not there opens nothing', await openCard('card_nothing'), false);
 
-    // ---- the dialog ----
-    document.querySelector('[data-act="lib"]').click();
-    await new Promise((r) => setTimeout(r, 100));
-    const dlg = document.getElementById('libDlg'), rows = () => Array.from(document.querySelectorAll('#libList .lib-card'));
-    ok('Your workflows lists them, the open one marked', dlg.open && rows().length === 2 && rows().filter((r) => r.classList.contains('on')).length === 1);
-    ok('the open one cannot be opened again, and Keep is not offered', !document.querySelector(`#libList [data-card="${id}"] [data-act="lib-open"]`) && document.getElementById('libKeep').hidden);
-    const del = document.querySelector(`#libList [data-card="${second.id}"] [data-act="lib-del"]`);
-    del.click();
-    eq('Delete asks once more before it does', [(await libList()).length, del.textContent], [2, 'Delete for good']);
-    del.click();
-    await new Promise((r) => setTimeout(r, 150));
+    // ---- on the start page ----
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    document.querySelector('[data-act="home"]').click();
+    await wait(300);
+    const rows = () => Array.from(document.querySelectorAll('#landingCards .landing-card'));
+    ok('the start page lists them, the open one marked', state.landing && rows().length === 2 && rows().filter((r) => r.classList.contains('on')).length === 1 && !document.querySelector('#landingCards .draft'));
+    ok('a kept workflow that is open is not offered to be kept again', document.getElementById('keepMenu').hidden);
+    const del = () => document.querySelector(`#landingCards [data-card="${second.id}"] [data-act="lib-del"]`);
+    del().click(); await wait(200);
+    eq('Delete asks once more before it does', [(await libList()).length, del().textContent], [2, 'Delete for good']);
+    del().click(); await wait(300);
     eq('then deletes that card only', [(await libList()).map((c) => c.id), rows().length], [[id], 1]);
+
+    // ---- the binder: every kept workflow in one file ----
+    const saves = [], realSave = window.saveBlob;
+    window.saveBlob = (blob, name) => { saves.push({ blob, name }); };
+    try {
+        const env = await binderEnvelope();
+        eq('a binder carries every kept workflow, each as its own file would be', [env.kind, env.version, env.workflows.length, env.workflows[0].kind, env.workflows[0].doc.name], ['flowbinder', 1, 1, 'flowdoc', 'Shop checkout']);
+        document.getElementById('binderExport').click(); await wait(300);
+        ok('Back up all saves it as one file', saves.length === 1 && /^Flow binder \d{4}-\d\d-\d\d\.flowbinder\.json$/.test(saves[0].name) && JSON.parse(await saves[0].blob.text()).workflows.length === 1);
+        document.querySelector(`#landingCards [data-card="${id}"] [data-act="lib-save"]`).click(); await wait(300);
+        ok('a card saves its own workflow as a file', saves.length === 2 && saves[1].name === 'Shop checkout.flow.json' && JSON.parse(await saves[1].blob.text()).kind === 'flowdoc');
+    } finally { window.saveBlob = realSave; }
+    const other = newDoc('From elsewhere'); other.screens.push(readRec('screens', { id: 'scr_else', name: 'Elsewhere' }));
+    const binder = JSON.stringify({ kind: 'flowbinder', version: 1, made: 'x', workflows: [(await libGet(id)).doc, fileEnvelope(normalizeDoc(serializeDoc(other))), { nonsense: true }] });
+    eq('opening a binder adds what is not here yet', [await openAnyFile(binder), (await libList()).map((c) => c.name).sort(), state.landing], ['binder', ['From elsewhere', 'Shop checkout'], true]);
+    eq('opening it again adds nothing', [await openAnyFile(binder), (await libList()).length], ['binder', 2]);
+    await wait(300);
+    eq('the workflow that was open is still the one open', [state.cardId, state.doc.name], [id, 'Shop checkout']);
+    eq('a workflow file still opens in the editor', [await openAnyFile(JSON.stringify(fileEnvelope(other))), state.landing, state.doc.name], ['doc', false, 'From elsewhere']);
+    await openCard(id);
+    for (const c of await libList()) if (c.id !== id) await libDelete(c.id);
     await libDelete(id);
     eq('deleting the card that is open leaves the workflow open, not kept', [state.cardId, state.doc.name, localStorage.getItem('flow_live_card')], ['', 'Shop checkout', null]);
-    document.querySelector('[data-act="dlg-close"][data-dlg="libDlg"]').click();
+    goHome(); await wait(300);
+    ok('and it is back on the start page as the one not kept, with Keep beside it', !!document.querySelector('#landingCards .draft [data-act="lib-keep"]') && document.getElementById('binderExport').hidden);
+    showLanding(false);
 
     // ---- read-only, and no IndexedDB ----
     state.readOnly = true;

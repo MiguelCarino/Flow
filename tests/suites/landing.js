@@ -12,34 +12,46 @@ suite(async (ok, eq) => {
 
     showLanding(true);
     ok('the landing page covers the editor', !landing.hidden && landing.getBoundingClientRect().height > 300 && landing.getBoundingClientRect().width === innerWidth && document.body.classList.contains('on-landing') && getComputedStyle(landing).position === 'fixed');
-    ok('it says what Flow is, and that nothing leaves the tab', /Every screen, and every way between them/.test(landing.textContent) && /no server, no upload, no account/.test(landing.textContent));
+    ok('it says what Flow is; where it runs is said in About, not again here', /Every screen, and every way between them/.test(landing.textContent) && !/no server, no upload, no account/.test(landing.textContent));
     ok('the editor\'s controls are out of the bar meanwhile', !visible(document.getElementById('undoBtn')) && !visible(document.getElementById('fileMenuBtn')));
-    eq('the ways in', Array.from(landing.querySelectorAll('.landing-acts [data-act]')).map((b) => b.dataset.act), ['enter', 'example', 'open', 'lib']);
-    eq('with nothing drawn yet, the way in is to start', [document.getElementById('landingGo').textContent, document.getElementById('landingNow').hidden], ['Start drawing', true]);
+    eq('the ways in: a new workflow, a file, the example', Array.from(landing.querySelectorAll('.landing-ways [data-act], .landing-chips [data-act]')).map((b) => b.dataset.act), ['landing-new', 'open', 'example']);
+    ok('there is no Start drawing or Continue button, and no Your workflows popup', !document.getElementById('landingGo') && !landing.querySelector('[data-act="lib"]') && !document.getElementById('libDlg') && !/Continue your workflow/.test(landing.textContent));
+    const mark = landing.querySelector('.landing-mark'), img = mark.querySelector('img.mk-gold').getBoundingClientRect(), runLine = mark.querySelector('.flowline').getBoundingClientRect();
+    ok('the mark is centred, with its animation under it', Math.abs((img.left + img.right) / 2 - innerWidth / 2) < 2 && Math.abs((runLine.left + runLine.right) / 2 - innerWidth / 2) < 2 && runLine.top >= img.bottom);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true }));
     ok('the editor\'s keys do nothing under it', state.selection.size === 0);
 
-    document.getElementById('landingGo').click();
-    eq('Start drawing goes into the editor, and the address says so', [state.landing, landing.hidden, location.hash, visible(document.getElementById('undoBtn'))], [false, true, '#editor', true]);
+    enterEditor();
+    eq('going in puts the editor in the address', [state.landing, landing.hidden, location.hash, visible(document.getElementById('undoBtn'))], [false, true, '#editor', true]);
     ok('a reload from there stays in the editor', landingAtStart() === false);
     addScreen('phone'); setF(state.doc.screens[0].id, 'name', 'Home');
     change({ op: 'set', kind: 'doc', id: '', field: 'name', value: 'My app' });
+    document.querySelector('[data-act="home"]').click();
+    await new Promise((r) => setTimeout(r, 300));
+    const draft = landing.querySelector('.landing-card.draft');
+    eq('File, All workflows goes back to the start page, with the address bare', [state.landing, location.hash], [true, '']);
+    ok('what is open and not kept is the first card, and says so', !!draft && /My app/.test(draft.textContent) && /1 screen/.test(draft.textContent) && /not kept/.test(draft.textContent) && !!draft.querySelector('[data-act="lib-keep"]'));
+    setLocale('es'); render();
+    await new Promise((r) => setTimeout(r, 300));
+    ok('the landing page is in Flow\'s language', /Cada pantalla, y cada camino entre ellas/.test(landing.textContent) && /sin guardar/.test(landing.querySelector('.landing-card.draft').textContent));
+    setLocale('en'); render();
+    landing.querySelector('.landing-card.draft [data-act="enter"]').click();
+    eq('a press on that card goes back in', [state.landing, state.doc.name], [false, 'My app']);
     setAddress(''); showLanding(true);
-    eq('with something drawn, the way in is to carry on, and it says what is there', [document.getElementById('landingGo').textContent, document.getElementById('landingNow').textContent], ['Continue your workflow', 'My app · 1 screen']);
-    setLocale('es');
-    ok('the landing page is in Flow\'s language', /Cada pantalla, y cada camino entre ellas/.test(landing.textContent) && document.getElementById('landingGo').textContent === 'Continuar con tu flujo');
-    setLocale('en');
 
     // ---- the sample ----
     landing.querySelector('[data-act="example"]').click();
     const doc = state.doc;
     eq('Open the example loads the sample and goes in', [state.landing, doc.name, location.hash], [false, 'Shop', '#editor']);
-    eq('a shop from signing in to the receipt', [doc.screens.map((s) => s.name).sort(), doc.decisions.map((d) => d.name).sort(), doc.links.length], [['Cart', 'Payment declined', 'Product', 'Products', 'Receipt', 'Reset password', 'Sign in'], ['Is the card accepted?', 'Is the password right?'], 11]);
+    eq('a shop from both sides: the customer to the receipt, the staff in the back office', [doc.screens.map((s) => s.name).sort(), doc.decisions.map((d) => d.name).sort(), doc.links.length], [['Cart', 'Order', 'Orders', 'Packing slip', 'Payment declined', 'Product', 'Products', 'Receipt', 'Refund', 'Reset password', 'Sign in'], ['Is everything in stock?', 'Is the card accepted?', 'Is the password right?', 'Who signed in?'], 19]);
     const desktop = doc.sizes.filter((z) => z.name === 'Desktop');
-    eq('its main screens are drawn for a desktop too, used with a mouse', [desktop.map((z) => recOf(doc, z.screen).name).sort(), desktop.every((z) => z.w === 1920 && z.h === 1080 && z.input === 'pointer')], [['Cart', 'Products', 'Sign in'], true]);
-    ok('with something on each desktop drawing', desktop.every((z) => elementsOf(doc, z.id).length >= 3));
+    const only = doc.screens.filter((s) => sizesOf(doc, s.id).every((z) => z.name === 'Desktop')).map((s) => s.name).sort();
+    eq('the customer\'s main screens are drawn for a desktop too, used with a mouse', [desktop.map((z) => recOf(doc, z.screen).name).filter((n) => !only.includes(n)).sort(), desktop.every((z) => z.w === 1920 && z.h === 1080 && z.input === 'pointer')], [['Cart', 'Product', 'Products', 'Receipt', 'Sign in'], true]);
+    eq('the back office is desktop windows only', only, ['Order', 'Orders', 'Packing slip', 'Refund']);
+    ok('one of them takes a dropped file', doc.elements.some((e) => e.type === 'dropzone' && recOf(doc, recOf(doc, e.size).screen).name === 'Refund'));
+    ok('with something on each desktop drawing', desktop.every((z) => elementsOf(doc, z.id).length >= 2));
     eq('it has nothing for the checks to report', findFindings(doc).map((f) => f.text), []);
-    eq('every screen can be reached and the workflow has its ways through', [testCases(doc).map((c) => c.name), findPaths(doc, doc.screens.find((s) => s.start).id, doc.screens.find((s) => s.end).id).length], [['Sign in to Receipt'], 1]);
+    eq('every screen can be reached and the workflow has its ways through', [testCases(doc).map((c) => c.name), findPaths(doc, doc.screens.find((s) => s.start).id, doc.screens.find((s) => s.end).id).length], [['Sign in to Receipt', 'Sign in to Packing slip'], 1]);
     ok('it uses two sources, and keys for a dictionary', doc.sources.length === 2 && keysInUse(doc).size >= 5);
     const signIn = doc.screens.find((s) => s.name === 'Sign in');
     showSize(sizesOf(doc, signIn.id)[1].id);
@@ -65,8 +77,9 @@ suite(async (ok, eq) => {
         selectId(id);
         ok(`${what} has one too`, board.querySelectorAll('.sel-layer .node-delete').length === 1);
     }
-    selectId(d.links[0].id); press(disc());
-    ok('on a link it deletes the link', !recOf(d, d.links[0] ? 'lnk_none' : '') && d.links.length === 10);
+    const linksWere = d.links.length, firstLink = d.links[0].id;
+    selectId(firstLink); press(disc());
+    ok('on a link it deletes the link', !recOf(d, firstLink) && d.links.length === linksWere - 1);
     undo();
     selectId(receipt.id); press(disc());
     ok('on a screen it deletes the screen and what hung off it', !recOf(d, receipt.id) && !recOf(d, thanks.id));

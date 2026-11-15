@@ -37,6 +37,8 @@ const ELEMENT_KIT = {
     radio: { label: 'Radio', group: 'controls', w: 200, h: 44, text: 'Option', fs: 16, control: true, state: true },
     toggle: { label: 'Toggle', group: 'controls', w: 200, h: 44, text: 'Setting', fs: 16, control: true, state: true },
     slider: { label: 'Slider', group: 'controls', w: 240, h: 44, text: '', fs: 12, control: true, amount: true },
+    // Where a file is dropped, or chosen with a press. tile: the words its tile shows.
+    dropzone: { label: 'Drop zone', group: 'controls', w: 280, h: 144, text: 'Drop a file here, or choose one', tile: 'Drop a file', fs: 14, control: true },
     card: { label: 'Card', group: 'structure', w: 280, h: 160, text: 'Card title', fs: 16 },
     list: { label: 'List', group: 'structure', w: 280, h: 168, text: 'First item\nSecond item\nThird item', fs: 16, lines: true },
     table: { label: 'Table', group: 'structure', w: 320, h: 144, text: 'Name | Amount\nFirst | 10\nSecond | 20', fs: 14, lines: true },
@@ -167,11 +169,12 @@ function exampleOps() {
     ];
 }
 
-// The sample a visitor is offered (loadSample, js/app.js): a small shop from
-// signing in to the receipt, with the way back when a card is declined and
-// the way round a forgotten password. Its main screens are drawn twice, for
-// a phone and for a desktop, to show that the workflow is drawn once for
-// both. It has nothing for the checks to report: a test holds that.
+// The sample a visitor is offered (loadSample, js/app.js): a shop from both
+// sides. The customer's side runs from signing in to the receipt, each main
+// screen drawn for a phone and for a desktop; the staff's side, the back
+// office, is desktop windows only. Four decisions, two ends, a way back from
+// a declined card and from a refund, two sources, keys for a dictionary.
+// It is built to have no findings.
 function sampleOps() {
     const id = nextId, ops = [];
     const add = (kind, rec) => { ops.push({ op: 'add', kind, rec }); return rec.id; };
@@ -208,8 +211,11 @@ function sampleOps() {
     el(sForgot, P, 'input', 216, 48, 'Email', { name: 'Email' });
     const btnSend = el(sForgot, P, 'button', 296, 48, 'Send the link', { name: 'Send the link' });
 
+    // A desktop window laid out by hand: what is where, at 1920 wide.
+    const at = (sz, type, x, y, w, h, text, extra = {}) => add('elements', Object.assign({ id: id('elements'), size: sz, type, x, y, w, h, text, fs: ELEMENT_KIT[type].fs, pinH: 'left', z: y }, extra));
+
     // ---- Products ----
-    const products = screen('Products', 1160, 0, { path: '/products', at: 'src/screens/Products' });
+    const products = screen('Products', 2040, 0, { path: '/products', at: 'src/screens/Products' });
     const sProd = size(products, phone, 1), sProdD = size(products, desk, 2);
     bar(sProd, phone.w, 'topbar', 0, 56, 'Shop');
     el(sProd, P, 'input', 72, 48, 'Search products', { name: 'Search' });
@@ -220,16 +226,23 @@ function sampleOps() {
     el(sProdD, D, 'table', 168, 240, 'Product | Price\nRunning shoes | $89\nRain jacket | $120\nDay pack | $65\nWater bottle | $18', { name: 'Products' });
 
     // ---- Product ----
-    const product = screen('Product', 1740, 0, { path: '/products/running-shoes' });
-    const sOne = size(product, phone, 1);
+    const product = screen('Product', 2900, 0, { path: '/products/running-shoes' });
+    const sOne = size(product, phone, 1), sOneD = size(product, desk, 2);
     bar(sOne, phone.w, 'topbar', 0, 56, 'Running shoes');
     el(sOne, P, 'image', 72, 240, 'A photo of the running shoes', { source: design, at: 'Product / Hero' });
     el(sOne, P, 'heading', 328, 40, 'Running shoes');
     el(sOne, P, 'text', 376, 32, '$89, with free delivery');
     const btnAdd = el(sOne, P, 'button', 432, 48, 'Add to cart', { name: 'Add to cart' });
+    // On a desktop the photo sits beside what is said about it.
+    bar(sOneD, desk.w, 'topbar', 0, 56, 'Running shoes');
+    at(sOneD, 'image', 240, 136, 720, 560, 'A photo of the running shoes', { source: design, at: 'Product / Hero' });
+    at(sOneD, 'heading', 1040, 136, 560, 40, 'Running shoes');
+    at(sOneD, 'text', 1040, 200, 560, 32, '$89, with free delivery');
+    at(sOneD, 'select', 1040, 264, 240, 48, 'Size 42', { name: 'Size' });
+    at(sOneD, 'button', 1040, 344, 240, 48, 'Add to cart', { name: 'Add to cart' });
 
     // ---- Cart ----
-    const cart = screen('Cart', 2320, 0, { path: '/cart', at: 'src/screens/Cart' });
+    const cart = screen('Cart', 3760, 0, { path: '/cart', at: 'src/screens/Cart' });
     const sCart = size(cart, phone, 1), sCartD = size(cart, desk, 2);
     let btnPay;
     [[sCart, P, 96], [sCartD, D, 200]].forEach(([sz, col, top], i) => {
@@ -241,22 +254,68 @@ function sampleOps() {
     });
 
     // ---- Receipt, and the card declined ----
-    const receipt = screen('Receipt', 3480, 0, { end: true, path: '/receipt' });
-    const sRec = size(receipt, phone, 1);
-    el(sRec, P, 'heading', 96, 40, 'Thank you');
-    el(sRec, P, 'text', 152, 32, 'Order 1042 is on its way.');
-    const declined = screen('Payment declined', 2320, 1160, { path: '/cart/declined' });
+    const receipt = screen('Receipt', 5200, 0, { end: true, path: '/receipt' });
+    const sRec = size(receipt, phone, 1), sRecD = size(receipt, desk, 2);
+    [[sRec, P, 96], [sRecD, D, 300]].forEach(([sz, col, top]) => {
+        el(sz, col, 'heading', top, 40, 'Thank you');
+        el(sz, col, 'text', top + 56, 32, 'Order 1042 is on its way.');
+    });
+    const declined = screen('Payment declined', 3760, 1160, { path: '/cart/declined' });
     const sDec = size(declined, phone, 1);
     el(sDec, P, 'heading', 96, 40, 'Payment declined');
     el(sDec, P, 'alert', 152, 72, 'Your card was declined. Try another card.');
     const btnRetry = el(sDec, P, 'button', 248, 48, 'Try again', { name: 'Try again' });
 
+    // ---- The back office: desktop windows only ----
+    // Staff work at a desk, so these screens are drawn at one size, 1920×1080.
+    const orders = screen('Orders', 0, 2640, { path: '/admin/orders', at: 'src/admin/Orders', status: 'designed' });
+    const sOrd = size(orders, desk, 1);
+    bar(sOrd, desk.w, 'topbar', 0, 56, 'Back office');
+    at(sOrd, 'heading', 96, 96, 560, 40, 'Orders');
+    at(sOrd, 'input', 96, 160, 560, 48, 'Search orders', { name: 'Search orders' });
+    at(sOrd, 'select', 680, 160, 240, 48, 'Every status', { name: 'Status' });
+    at(sOrd, 'chip', 96, 232, 120, 32, '3 to pack');
+    const tblOrders = at(sOrd, 'table', 96, 288, 1728, 240, 'Order | Customer | Total | Status\n1042 | Ana Ruiz | $89 | Paid\n1041 | Leo Sato | $185 | Packed\n1040 | Mia Okafor | $18 | Refunded', { name: 'Orders', pinH: 'both' });
+    at(sOrd, 'progress', 96, 560, 560, 8, '', { value: 66, name: 'Packed today' });
+
+    const order = screen('Order', 2200, 2640, { path: '/admin/orders/1042', at: 'src/admin/Order', status: 'designed' });
+    const sOrder = size(order, desk, 1);
+    bar(sOrder, desk.w, 'topbar', 0, 56, 'Order 1042');
+    at(sOrder, 'heading', 96, 96, 560, 40, 'Order 1042');
+    at(sOrder, 'card', 96, 160, 560, 120, 'Ana Ruiz, 12 Harbour Street');
+    at(sOrder, 'list', 96, 304, 560, 112, 'Running shoes, $89\nDelivery, free', { name: 'Order lines' });
+    at(sOrder, 'text', 96, 440, 560, 32, 'Total $89, paid by card');
+    const btnPack = at(sOrder, 'button', 96, 504, 240, 48, 'Mark as packed', { name: 'Mark as packed' });
+    const btnRefund = at(sOrder, 'button', 360, 504, 240, 48, 'Refund the order', { name: 'Refund the order' });
+    at(sOrder, 'image', 1000, 160, 824, 392, 'A map of the delivery address');
+
+    const slip = screen('Packing slip', 5000, 2640, { end: true, path: '/admin/orders/1042/slip', status: 'designed' });
+    const sSlip = size(slip, desk, 1);
+    bar(sSlip, desk.w, 'topbar', 0, 56, 'Packing slip');
+    at(sSlip, 'heading', 96, 96, 560, 40, 'Packing slip for order 1042');
+    at(sSlip, 'table', 96, 160, 1100, 144, 'Item | Shelf | Count\nRunning shoes, size 42 | B4 | 1\nGift receipt | Desk | 1', { name: 'What to pack' });
+    at(sSlip, 'button', 96, 336, 240, 48, 'Print the slip', { name: 'Print the slip' });
+
+    const refund = screen('Refund', 5000, 3960, { path: '/admin/orders/1042/refund', status: 'designed' });
+    const sRefund = size(refund, desk, 1);
+    bar(sRefund, desk.w, 'topbar', 0, 56, 'Refund');
+    at(sRefund, 'heading', 96, 96, 560, 40, 'Refund order 1042');
+    at(sRefund, 'select', 96, 160, 560, 48, 'Out of stock', { name: 'Reason' });
+    at(sRefund, 'textarea', 96, 232, 560, 112, 'A note for the customer', { name: 'Note' });
+    at(sRefund, 'dropzone', 96, 368, 560, 144, 'Drop a photo of the damage here, or choose one', { name: 'Evidence' });
+    at(sRefund, 'toggle', 96, 536, 320, 44, 'Email the customer', { name: 'Email the customer', on: true });
+    const btnSendRefund = at(sRefund, 'button', 96, 608, 240, 48, 'Send the refund', { name: 'Send the refund' });
+
     // ---- Decisions, and the ways between ----
-    const askIn = add('decisions', { id: id('decisions'), name: 'Is the password right?', x: 640, y: 344 });
-    const askPay = add('decisions', { id: id('decisions'), name: 'Is the card accepted?', x: 2900, y: 344 });
+    const askIn = add('decisions', { id: id('decisions'), name: 'Is the password right?', x: 760, y: 344 });
+    const askWho = add('decisions', { id: id('decisions'), name: 'Who signed in?', x: 1400, y: 344 });
+    const askPay = add('decisions', { id: id('decisions'), name: 'Is the card accepted?', x: 4520, y: 344 });
+    const askStock = add('decisions', { id: id('decisions'), name: 'Is everything in stock?', x: 4420, y: 3100 });
     link(signIn, askIn, { fromEl: btnIn, label: 'Taps Sign in' });
-    link(askIn, products, { kind: 'system', cond: 'Yes' });
+    link(askIn, askWho, { kind: 'system', cond: 'Yes' });
     link(askIn, signIn, { kind: 'system', cond: 'No', label: 'Shows the error' });
+    link(askWho, products, { kind: 'system', cond: 'A customer' });
+    link(askWho, orders, { kind: 'system', cond: 'Staff', label: 'Opens the back office' });
     link(signIn, forgot, { fromEl: lnkForgot, label: 'Taps Forgot your password?' });
     link(forgot, signIn, { fromEl: btnSend, label: 'Taps Send the link' });
     link(products, product, { fromEl: listP, label: 'Taps a product' });
@@ -265,5 +324,11 @@ function sampleOps() {
     link(askPay, receipt, { kind: 'system', cond: 'Yes' });
     link(askPay, declined, { kind: 'system', cond: 'No', label: 'Shows why' });
     link(declined, cart, { fromEl: btnRetry, kind: 'back', label: 'Taps Try again' });
+    link(orders, order, { fromEl: tblOrders, label: 'Clicks an order' });
+    link(order, askStock, { fromEl: btnPack, label: 'Clicks Mark as packed' });
+    link(order, refund, { fromEl: btnRefund, label: 'Clicks Refund the order' });
+    link(askStock, slip, { kind: 'system', cond: 'Yes' });
+    link(askStock, refund, { kind: 'system', cond: 'No', label: 'Shows what is missing' });
+    link(refund, orders, { fromEl: btnSendRefund, label: 'Clicks Send the refund' });
     return ops;
 }

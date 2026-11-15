@@ -217,6 +217,7 @@
             "radio",
             "toggle",
             "slider",
+            "dropzone",
             "card",
             "list",
             "table",

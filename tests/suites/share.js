@@ -59,4 +59,43 @@ suite(async (ok, eq) => {
     document.querySelector('[data-act="dlg-close"][data-dlg="exportDlg"]').click();
     ok('and Close closes it', !dlg.open);
     ok('the workflow is not in the address bar at any point', location.hash === '');
+
+    // ---- a plain link: the address alone builds the workflow ----
+    loadExample();
+    const whole = JSON.stringify(fileEnvelope(state.doc));
+    const pfrag = await plainText(whole);
+    ok('a plain link starts with ~ and is plain link characters', /^~[A-Za-z0-9_-]+$/.test(pfrag) && isPlainFragment('#' + pfrag) && !isPlainFragment('#e~abc') && !isPlainFragment('#editor'));
+    eq('it gives the file back, with no passphrase', await unplainText('#' + pfrag), whole);
+    ok('and is smaller than the file', pfrag.length < whole.length);
+    eq('a link cut short is said in words', await fail(unplainText(pfrag.slice(0, 30))), 'This link is damaged or was cut short.');
+    eq('what is not a link', await fail(unplainText('#editor')), 'This is not a Flow link.');
+    const plainLink = await makeShareLink('all', '', false, false, true);
+    ok('Share makes one without a passphrase', plainLink.startsWith(location.origin + location.pathname + '#~'));
+    eq('the same workflow gives the same link', await makeShareLink('all', '', false, false, true), plainLink);
+    const want = JSON.stringify(serializeDoc(state.doc));
+    openDoc(newDoc('Other'), false);
+    history.replaceState(null, '', location.pathname + location.search + '#' + plainLink.split('#')[1]);
+    const taken = takePlainFromAddress();
+    eq('a plain link in the address is taken out of it', [taken === plainLink.split('#')[1], location.hash, takePlainFromAddress()], [true, '#editor', '']);
+    eq('and the workflow is built from it', [await runPlain(taken), JSON.stringify(serializeDoc(state.doc)) === want], [true, true]);
+    undo();
+    eq('Undo brings back what was open', state.doc.name, 'Other');
+    eq('a damaged one opens nothing', [await runPlain('~AAAA'), state.doc.name], [false, 'Other']);
+    // pasted over the address of an open page
+    history.replaceState(null, '', location.pathname + location.search + '#' + taken);
+    onHashChange();
+    await new Promise((r) => setTimeout(r, 300));
+    eq('a link pasted into an open page opens too', [state.doc.name, location.hash], ['Shop checkout', '#editor']);
+    history.replaceState(null, '', location.pathname + location.search);
+
+    // the dialog: locked by default, plain one tick away
+    document.querySelector('[data-act="share-open"]').click();
+    const seal = document.getElementById('exportSeal');
+    ok('Share a link opens the dialog on the link, locked', dlg.open && as.value === 'link' && seal.checked && !document.getElementById('exportPassRow').hidden);
+    seal.checked = false; seal.dispatchEvent(new Event('change', { bubbles: true }));
+    ok('unlocked, it asks for no passphrase and says what that means', document.getElementById('exportPassRow').hidden && /Anyone who gets the link/.test(document.getElementById('exportLinkNote').textContent));
+    const plainMade = await runExport(false);
+    ok('and makes a plain link', typeof plainMade === 'string' && plainMade.includes('#~') && document.getElementById('exportLink').value === plainMade);
+    seal.checked = true; seal.dispatchEvent(new Event('change', { bubbles: true }));
+    document.querySelector('[data-act="dlg-close"][data-dlg="exportDlg"]').click();
 });

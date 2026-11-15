@@ -38,6 +38,11 @@ const state = {
     // accepting: the key of the finding whose reason is being typed. View only.
     accepting: '',
     acceptedOpen: false,
+    // clsShut: the classes of finding folded shut in the list. View only.
+    clsShut: new Set(),
+    // lastAdded: the element last added from the grid ('button', 'block:<id>'),
+    // which Add again and the A key add once more. View only.
+    lastAdded: '',
     // base: the base address tests are run against. test: null, or the run
     // that is open { run, at, once }; once is an address typed for one step,
     // which is used and never saved. View only.

@@ -74,11 +74,13 @@ the app join one room; the page prints PASS and FAIL lines.
 | `walk` | every way between two stops; marking one on the board |
 | `play` | clicking through the workflow; it changes nothing |
 | `export` | parts that merge back, pictures, storyboard, zip, copy sheet, report |
-| `share` | sealed links: sealing, opening, arriving by one (real clock) |
-| `library` | keeping workflows in the browser; they save themselves (real clock) |
+| `share` | sealed and plain links: making, opening, arriving by one (real clock) |
+| `library` | keeping workflows in the browser; they save themselves; the cards on the start page; the binder, out and back in (real clock) |
 | `testing` | live addresses, test cases, runs with pass and fail |
 | `i18n` | Flow's five languages; apart from the workflow's; whole for a client |
 | `i18ncover` | every state of the editor in every language: no word without a translation (real clock) |
 | `simple` | the Simple view changes nothing; a tap opens a screen; pinch to zoom |
 | `perf` | the budget: 60 screens and 3,000 elements stay usable |
+| `classes` | what kind of finding each is; the drop zone; Add again; a first workflow from the start page (real clock) |
+| `report` | the report in the fleet's designs: packing into pages, the three themes, the preview, the PDF and the HTML file (real clock) |
 | `landing` | the landing page and when it is skipped; the example; the ✕ that deletes; link colours |

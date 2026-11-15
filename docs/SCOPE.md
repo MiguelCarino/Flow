@@ -77,8 +77,19 @@ format, and nothing leaving the page.
 | D56 | A tile can be dragged from the grid onto a screen or a block, with nothing selected: the element lands where it is dropped, on the grid, kept inside. A click on a tile still adds to what is selected. After either, the grid is held open until something else is chosen, so the next element can follow. |
 | D57 | A selected link, and the links of a marked way, are drawn in gold on every background, as a selected link is in Topo. A link that is not selected takes the ink of the background it is on. |
 | D58 | Whatever is selected (a screen, an element, a decision, a link, or several things) carries a small red ✕ beside it that deletes it, as in Topo. It is not drawn on a workflow that cannot be changed. Delete is an ordinary change, so Undo brings it back. |
-| D59 | The page opens on a landing page that says what Flow is and leads into the editor; the editor is at `#editor`. A share link, a room link and the Simple view skip it. |
-| D60 | The example is a small shop: seven screens, two decisions, a way back from a declined payment, and desktop sizes beside the phone ones on three screens. It has no findings. The tests keep their own three-screen fixture. |
+| D59 | The page opens on a start page laid out as Topo's: the mark centred with one piece of motion under it, the claim, a short lede, one target to start a new workflow (also where a file is dropped), the example as a chip, and the workflows kept in this browser. The editor is at `#editor`; File, All workflows goes back. A share link, a room link and the Simple view skip it. |
+| D60 | The example is a shop from both sides: the customer's way from signing in to the receipt, its main screens drawn for a phone and a desktop, and the staff's back office, which is desktop windows only. Eleven screens, four decisions, two ends. It has no findings. The tests keep their own three-screen fixture. |
+| D61 | A link can also be plain, as in Topo: the workflow, deflated, after the `#` (`#~…`), and the address alone builds it again. The Share dialog locks by default; plain is one tick away and says that whoever gets the link has the workflow. A plain link is taken out of the address as soon as the page sees it, and opening it is an ordinary change. |
+| D62 | The drop zone is an element of the kit: a dashed box that says what to drop. It is a control, so it is checked for size, text and a name like the others. |
+| D63 | Every finding has a class, finer than its heading: unchanged since it was added, decisions that lead nowhere, dead ends, and so on (`CHECK_CLASSES`). The Findings list is sorted into them, each with its count, and a class can be folded shut. Pinned findings come first under a heading of their own. |
+| D64 | Two more checks: a screen that still has the name it was given and nothing drawn on it, and a decision whose branches all lead to the same place. A decision with no branch at all is classed as leading nowhere; with one, as not finished. |
+| D65 | The element last added from the grid can be added again with one press, or the A key: on the same screen, under what is there. It is on offer while the grid is folded. |
+| D66 | The kept workflows are cards on the start page, not a dialog: a press opens one, and each can be saved as a file or deleted (asked twice). With none kept, the target says so and offers to make the first: a name and a button, and it is kept and opened. With some, the list goes above the target and the pitch shrinks to the claim. The workflow that is open and not kept is the first card, with Keep beside it; there is no Continue button. |
+| D71 | A binder is every kept workflow in one file (`.flowbinder.json`), made with Back up all. Opening or dropping one adds its workflows to the ones kept here; one that is here already, the same to the letter, is not added twice, and the workflow that is open is left alone. |
+| D67 | The report comes in the fleet's document designs (Branding `documents/`): letter pages with the mark and wordmark at the head, the kicker, the title, a row of cards, numbered sections, ruled tables and a numbered foot, in white, black and blue. Plain, the report with no design, stays as a fourth choice. |
+| D68 | A design is fixed pages, so Flow lays the report out itself: it is cut into pieces that are never split, each is measured as it will be drawn, and they are packed into pages; a heading goes over the page with what follows it. Screens and the map are pictures written into the page. |
+| D69 | A report is looked at before it is saved, in the fleet's report preview: the design, the sources, the PDF or HTML switch, the file's name, Print and Download. The file is made by the fleet's report engine (`carino-pdf.js`): the PDF is pictures of the pages, so its text cannot be searched (Print, Save as PDF gives text); the HTML is one file with its fonts and pictures written in. html2canvas is loaded only when a PDF is made. |
+| D70 | The start page carries the fleet's short hero. It does not repeat that Flow runs in the tab with no upload: About says so, in its disclaimer. |
 | D15 | New, Open and the example are ordinary changes, so Undo brings back what was open and nothing asks "are you sure?". |
 
 ## Build order
@@ -89,7 +100,7 @@ format, and nothing leaving the page.
 2. **Done.** Edge pinning (a size changed from the rail re-places its
    elements; a new size starts as a pinned copy of the one on show),
    multi-select with a selection box, line up and space evenly, duplicate,
-   the full kit of 25 elements, six screen templates, blocks, styles, and
+   the full kit of 25 elements (26 since the drop zone), six screen templates, blocks, styles, and
    the performance budget held by `tests/suites/perf.js`.
 3. **Done.** The flow view (every screen a card, laid out from the links
    and never stored), Walk (every way from one stop to another, marked on

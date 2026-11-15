@@ -145,7 +145,6 @@ const WORDS = {
     'Every screen, and every way between them.': ['Cada pantalla, y cada camino entre ellas.', 'Cada tela, e cada caminho entre elas.', 'すべての画面と、その間のすべての道筋。', 'Каждый экран и каждый путь между ними.'],
     'Draw it once, and it checks itself.': ['Dibújalo una vez, y se revisa solo.', 'Desenhe uma vez, e ele se verifica sozinho.', '一度描けば、自分でチェックします。', 'Нарисуйте один раз — и сценарий проверит себя сам.'],
     'Screens at any size, the decisions between them and what takes the user from one to the next, with dead ends and unreachable screens found for you, and a report to hand over.': ['Pantallas de cualquier tamaño, las decisiones entre ellas y lo que lleva al usuario de una a otra, con los callejones sin salida y las pantallas inalcanzables detectados por ti, y un informe para entregar.', 'Telas de qualquer tamanho, as decisões entre elas e o que leva o usuário de uma a outra, com becos sem saída e telas inalcançáveis encontrados para você, e um relatório para entregar.', 'あらゆるサイズの画面、その間の判断、画面から画面へ進むきっかけを描くと、行き止まりや到達できない画面を見つけ、引き渡し用のレポートにまとめます。', 'Экраны любого размера, решения между ними и то, что ведёт пользователя от одного к другому: тупики и недостижимые экраны находятся сами, а итог — отчёт для передачи.'],
-    'It runs in this tab: no server, no upload, no account.': ['Funciona en esta pestaña: sin servidor, sin subir nada, sin cuenta.', 'Funciona nesta aba: sem servidor, sem upload, sem conta.', 'このタブ内で動作します。サーバーもアップロードもアカウントも不要です。', 'Работает в этой вкладке: без сервера, без загрузки, без учётной записи.'],
     'Start drawing': ['Empezar a dibujar', 'Começar a desenhar', '描きはじめる', 'Начать рисовать'],
     'Continue your workflow': ['Continuar con tu flujo', 'Continuar seu fluxo', 'フローの続きを開く', 'Продолжить сценарий'],
     'Dark background': ['Fondo oscuro', 'Fundo escuro', '暗い背景', 'Тёмный фон'],
@@ -237,7 +236,7 @@ function translateChrome(root, selector) {
 // changing language twice still starts from it.
 // carinoNav is the fleet's navbar, which has its own words; Flow's controls
 // and its About text are moved inside it, and are walked on their own below.
-const SKIP = ['landingGo', 'landingNow', 'board', 'railProps', 'railWalk', 'railTest', 'railFindings', 'playPane', 'testPane', 'libList', 'palette', 'libWrapRow', 'boardInkBtn', 'addTemplate', 'addPreset', 'flowLang', 'simpleBar', 'simpleBtn', 'carinoNav', 'TESTOUT'];
+const SKIP = ['reportStatus', 'reportName', 'reportGo', 'reportFormat', 'reportFrame', 'landingCards', 'addAgain', 'exportLinkNote', 'board', 'railProps', 'railWalk', 'railTest', 'railFindings', 'playPane', 'testPane', 'libList', 'palette', 'libWrapRow', 'boardInkBtn', 'addTemplate', 'addPreset', 'flowLang', 'simpleBar', 'simpleBtn', 'carinoNav', 'TESTOUT'];
 const ATTRS = ['title', 'aria-label', 'placeholder'];
 const seen = new WeakMap();
 // A word Flow has, in the main list or in a language's own file.

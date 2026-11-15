@@ -20,7 +20,7 @@ suite(async (ok, eq) => {
     const undoB = document.getElementById('undoBtn'), file = document.getElementById('fileMenuBtn');
     eq('buttons and their hints are translated', [undoB.textContent, undoB.title, file.textContent.replace(/\s+/g, ' ').trim()], ['↶ Deshacer', 'Deshacer (Ctrl+Z)', 'Archivo ▾']);
     ok('and the button still works', undoB.id === 'undoBtn' && undoB.dataset.act === 'undo');
-    eq('menus and dialogs too', [document.querySelector('[data-act="export-open"]').firstChild.nodeValue.trim(), document.getElementById('exportTitle').textContent, document.querySelector('#exportAs option[value="report"]').textContent], ['Exportar…', 'Exportar', 'Un informe para leer, enviar o imprimir (.html)']);
+    eq('menus and dialogs too', [document.querySelector('[data-act="export-open"]').firstChild.nodeValue.trim(), document.getElementById('exportTitle').textContent, document.querySelector('#exportAs option[value="report"]').textContent], ['Exportar…', 'Exportar', 'Un informe para leer, enviar o imprimir (PDF o HTML)']);
     setLocale('ja');
     eq('changing again starts from the English, not from the Spanish', [undoB.textContent, document.getElementById('exportTitle').textContent], ['↶ 元に戻す', '書き出し']);
     setLocale('en');

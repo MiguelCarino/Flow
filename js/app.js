@@ -270,8 +270,20 @@ function setStart(id, on) {
 function addFromGrid(type, drop) {
     if (!drop && !addTargetSize()) { say('Drag an element onto a screen, or select a screen and click one.', true); return ''; }
     const id = addElement(type, drop);
-    if (id) { state.libHeld = true; updateRailWrap(); }
+    if (id) { state.libHeld = true; state.lastAdded = type; renderPalette(); }
     return id;
+}
+// The element last added from the grid, once more: on the same screen, under
+// what is there. The button above the grid and the A key.
+function lastAddedLabel() {
+    const type = state.lastAdded;
+    if (!type) return '';
+    if (type.startsWith('block:')) { const b = recOf(state.doc, type.slice(6)); return b ? b.name || tr('Block') : ''; }
+    return ELEMENT_KIT[type] ? tr(ELEMENT_KIT[type].label) : '';
+}
+function addAgain() {
+    if (state.readOnly || !lastAddedLabel()) return '';
+    return addFromGrid(state.lastAdded);
 }
 // Where the pointer is over the board: the screen or block under it, what
 // elements are drawn on there, and the point inside it. null over anything
@@ -399,7 +411,7 @@ function landingAtStart() {
     let q;
     try { q = new URLSearchParams(location.search); } catch (e) { return false; }
     if (location.hash === '#editor' || q.has('simple') || q.has('full')) return false;
-    if (location.hash.startsWith('#' + SEAL_MARK) || location.hash.startsWith('#' + LIVE_MARK)) return false;
+    if (location.hash.startsWith('#' + SEAL_MARK) || location.hash.startsWith('#' + LIVE_MARK) || isPlainFragment(location.hash)) return false;
     return true;
 }
 function showLanding(on) {
@@ -410,11 +422,80 @@ function showLanding(on) {
 }
 function renderLanding() {
     if (!state.landing) return;
-    const doc = state.doc, n = doc.screens.length, some = KINDS.some((k) => doc[k].length);
-    $('landingGo').textContent = tr(some ? 'Continue your workflow' : 'Start drawing');
-    const note = $('landingNow');
-    note.hidden = !some;
-    note.textContent = some ? (doc.name ? doc.name + ' · ' : '') + tn(n, '1 screen', '{n} screens') : '';
+    // What is kept in this browser is read a moment later.
+    const turn = ++_landingTurn;
+    libList().then((cards) => { if (turn === _landingTurn && state.landing) paintLanding(cards); }, () => { if (turn === _landingTurn && state.landing) paintLanding([]); });
+}
+// The workflows kept here, each a card, and before them the one that is open
+// when it is not kept yet. With any, the list goes above the way to start a
+// new one and the pitch shrinks to the claim (css/app.css, .has-saved).
+let _landingTurn = 0;
+function paintLanding(cards) {
+    const doc = state.doc, draft = !state.cardId && KINDS.some((k) => doc[k].length), any = cards.length > 0 || draft;
+    $('landing').classList.toggle('has-saved', any);
+    $('landingNone').hidden = cards.length > 0;
+    $('landingMore').hidden = !cards.length;
+    $('landingSaved').hidden = !any;
+    $('landingEmpty').hidden = any;
+    $('binderExport').hidden = !cards.length;
+    const count = (d, k) => (d && Array.isArray(d[k]) ? d[k].length : 0);
+    const stats = (d) => `${tn(count(d, 'screens'), '1 screen', '{n} screens')} · ${tn(count(d, 'links'), '1 link', '{n} links')}`;
+    const badge = (text, cls = '') => `<span class="landing-badge ${cls}">${esc(tr(text))}</span>`;
+    let h = '';
+    // Open, with something in it, and not kept: it is here until it is kept or replaced.
+    if (draft) {
+        h += `<div class="landing-card draft on"><button type="button" class="landing-card-open" data-act="enter"><span class="landing-card-name">${esc(doc.name || tr('Untitled'))}</span>`
+            + `<span class="landing-card-stats">${esc(stats(doc))}</span><span class="landing-card-badges">${badge('open', 'good')}${badge('not kept', 'warn')}</span><span class="landing-card-when">${esc(tr('Only in this tab until it is kept.'))}</span></button>`
+            + (state.readOnly || state.live ? '' : `<div class="landing-card-tools"><button type="button" class="landing-tool wide" data-act="lib-keep" title="${esc(tr('Keep it in this browser; it saves itself from then on'))}">${esc(tr('Keep'))}</button></div>`) + '</div>';
+    }
+    h += cards.map((c) => {
+        const on = c.id === state.cardId, d = on ? doc : c.doc && c.doc.doc, sure = state.libSure === c.id, name = c.name || tr('Untitled');
+        return `<div class="landing-card${on ? ' on' : ''}${sure ? ' sure' : ''}" data-card="${esc(c.id)}"><button type="button" class="landing-card-open" data-act="lib-open" data-id="${esc(c.id)}">`
+            + `<span class="landing-card-name">${esc(on ? doc.name || name : name)}</span><span class="landing-card-stats">${esc(stats(d))}</span>`
+            + `<span class="landing-card-badges">${on ? badge('open', 'good') : ''}</span><span class="landing-card-when">${esc(tr('Changed {x}.', { x: new Date(c.updated).toLocaleString() }))}</span></button>`
+            + `<div class="landing-card-tools">${sure ? '' : `<button type="button" class="landing-tool" data-act="lib-save" data-id="${esc(c.id)}" title="${esc(tr('Save a copy as a file'))}" aria-label="${esc(tr('Save a copy as a file') + ' — ' + name)}">⤓</button>`}`
+            + `<button type="button" class="landing-tool${sure ? ' wide danger' : ''}" data-act="lib-del" data-id="${esc(c.id)}" title="${esc(tr(sure ? 'Delete for good' : 'Delete'))}" aria-label="${esc(tr(sure ? 'Delete for good' : 'Delete') + ' — ' + name)}">${sure ? esc(tr('Delete for good')) : '✕'}</button></div></div>`;
+    }).join('');
+    $('landingCards').innerHTML = h;
+}
+// A new workflow from the start page: named, kept in this browser, opened.
+async function landingNew() {
+    const name = $('landingName').value.trim();
+    if (state.live) liveLeave();
+    // What is open and not kept would be lost with the history: it is kept first.
+    await flushCard();
+    if (!state.cardId && !state.readOnly && KINDS.some((k) => state.doc[k].length)) await keepWorkflow();
+    await flushCard();
+    loadDoc(newDoc(name), false);
+    setCard('');
+    await keepWorkflow();
+    $('landingName').value = '';
+    say('A new workflow, kept in this browser. It saves itself on every change.');
+    enterEditor();
+}
+// Back to the start page, where every kept workflow is.
+function goHome() {
+    commitTyping();
+    flushCard();
+    state.libSure = '';
+    try { history.replaceState(history.state, '', location.pathname + location.search); } catch (e) { /* a file: page keeps its address */ }
+    showLanding(true);
+}
+// A file that was picked or dropped: a workflow opens in the editor, a
+// binder's workflows are added to the ones kept here.
+async function openAnyFile(text) {
+    let data = null;
+    try { data = JSON.parse(text); } catch (e) { /* openFileFrom says so */ }
+    if (isBinder(data)) {
+        const res = await importBinder(data);
+        say(res.added ? tr('Brought in {n} from the binder.', { n: tn(res.added, '1 workflow', '{n} workflows') }) + (res.same ? ' ' + tr('{n} were here already.', { n: res.same }) : '')
+            : res.same ? tr('Every workflow of that binder is here already.') : tr('That binder has no workflow in it.'), !res.added && !res.same);
+        goHome();
+        return 'binder';
+    }
+    if (!openFileFrom(text)) return '';
+    enterEditor();
+    return 'doc';
 }
 function enterEditor() {
     if (!state.landing) return;
@@ -477,18 +558,26 @@ function renderExport() {
     const picture = c.as === 'map' || c.as === 'screens' || c.as === 'storyboard';
     $('exportPicOpts').hidden = !picture;
     $('exportLinkOpts').hidden = c.as !== 'link';
+    const locked = $('exportSeal').checked;
+    $('exportPassRow').hidden = !locked;
+    $('exportLinkNote').textContent = tr(locked ? 'The workflow is encrypted here with this passphrase and put after the # of the link, which a browser never sends to a server. Whoever has both the link and the passphrase can open it.'
+        : 'The workflow is put after the # of the link as it is, and the link alone builds it again. Anyone who gets the link can read the whole workflow; chats, mail and browser history keep links.');
+    $('exportLinkNote').classList.toggle('bad', !locked);
     $('exportSourcesRow').hidden = !(c.as === 'doc' || c.as === 'report' || c.as === 'link') || !state.doc.sources.length;
-    $('exportPrint').hidden = c.as !== 'report';
-    $('exportGo').textContent = t(c.as === 'link' ? 'Make the link' : 'Export');
+    // A report is looked at first: its design, PDF or HTML, Print and Download are in its preview.
+    $('exportPrint').hidden = true;
+    $('exportGo').textContent = t(c.as === 'link' ? 'Make the link' : c.as === 'report' ? 'Preview the report…' : 'Export');
 }
 async function runExport(print) {
     const c = exportChoice(), msg = $('exportMsg');
     msg.textContent = tr('Working…'); msg.classList.remove('bad');
     try {
         if (c.as === 'link') {
-            const link = await makeShareLink(c.what, $('exportPass').value, c.noSources, $('exportSimple').checked);
+            const locked = $('exportSeal').checked;
+            const link = await makeShareLink(c.what, $('exportPass').value, c.noSources, $('exportSimple').checked, !locked);
             $('exportLink').value = link; $('exportLinkOut').hidden = false;
-            msg.textContent = tr('The link is {n} characters. Send the passphrase some other way than the link.', { n: link.length.toLocaleString() });
+            $('exportShare').hidden = typeof navigator.share !== 'function';
+            msg.textContent = tr(locked ? 'The link is {n} characters. Send the passphrase some other way than the link.' : 'The link is {n} characters. Anyone who gets it can open the workflow.', { n: link.length.toLocaleString() });
             return link;
         }
         const out = await buildExport(c);
@@ -510,6 +599,21 @@ async function runUnseal() {
         say(res.part ? 'Opened a part of a workflow from a link. Undo brings back what was here.' : 'Opened from a link. Undo brings back what was here.');
         return true;
     } catch (e) { msg.textContent = t((e && e.message) || 'The link could not be opened.'); msg.classList.add('bad'); return false; }
+}
+// A plain link: the workflow is built from the address itself.
+async function runPlain(fragment) {
+    try {
+        const res = await openPlain(fragment);
+        say(res.part ? 'Opened a part of a workflow from a link. Undo brings back what was here.' : 'Opened from a link. Undo brings back what was here.');
+        enterEditor(); fitBoard();
+        return true;
+    } catch (e) { say((e && e.message) || 'The link could not be opened.', true); return false; }
+}
+// A link pasted over the address of a page that is already open.
+function onHashChange() {
+    if (takeSealFromAddress()) { enterEditor(); $('passMsg').textContent = ''; openDlg('passDlg'); return; }
+    const plain = takePlainFromAddress();
+    if (plain) runPlain(plain);
 }
 function pickFile(then) {
     const pick = $('anyPick');
@@ -972,6 +1076,7 @@ function onAct(ev) {
     else if (act === 'add-screen') addScreen($('addPreset').value, $('addTemplate').value);
     else if (act === 'add-decision') addDecision();
     else if (act === 'add-el') { if (!b.classList.contains('no')) addFromGrid(b.dataset.type); }
+    else if (act === 'add-again') addAgain();
     else if (act === 'lib-wrap') { state.libPinned = !state.libPinned; updateRailWrap(); }
     else if (act === 'board-ink') setBoardInk(nextBoardInk());
     else if (act === 'add-size') addSize(id, $('sizePreset').value);
@@ -988,17 +1093,26 @@ function onAct(ev) {
     else if (act === 'test-mark') markStep(b.dataset.result);
     else if (act === 'test-close') closeRun();
     else if (act === 'export-open') { $('exportMsg').textContent = ''; $('exportLinkOut').hidden = true; renderExport(); openDlg('exportDlg'); }
-    else if (act === 'export-go') runExport(false);
+    else if (act === 'share-open') { $('exportMsg').textContent = ''; $('exportLinkOut').hidden = true; $('exportAs').value = 'link'; renderExport(); openDlg('exportDlg'); }
+    else if (act === 'export-share') { const url = $('exportLink').value; if (url && navigator.share) navigator.share({ title: state.doc.name || 'Flow', url }).catch(() => {}); }
+    else if (act === 'landing-new') landingNew();
+    else if (act === 'export-go') { const c = exportChoice(); if (c.as === 'report') { closeDlg('exportDlg'); openReport(c.what, c.noSources); } else runExport(false); }
+    else if (act === 'report-open') openReport('all', false);
+    else if (act === 'report-close') { _rp.turn++; closeDlg('reportDlg'); }
+    else if (act === 'report-print') printReport();
+    else if (act === 'report-download') downloadReport();
     else if (act === 'export-print') runExport(true);
     else if (act === 'export-copy') { const t = $('exportLink'); t.select(); if (navigator.clipboard) navigator.clipboard.writeText(t.value).then(() => { $('exportMsg').textContent = tr('Copied.'); }, () => {}); }
     else if (act === 'dlg-close') closeDlg(b.dataset.dlg);
     else if (act === 'merge') pickFile(mergeFileFrom);
     else if (act === 'sheet-in') pickFile(sheetFileFrom);
     else if (act === 'pass-go') runUnseal();
-    else if (act === 'lib') { state.libSure = ''; renderLibrary().then(() => openDlg('libDlg')); }
-    else if (act === 'lib-keep') keepWorkflow().then((kept) => { if (kept) say('Kept. It saves itself in this browser from now on.'); renderLibrary(); });
-    else if (act === 'lib-open') openCard(id).then((ok) => { if (ok) { closeDlg('libDlg'); say('Opened from Your workflows.'); enterEditor(); } });
-    else if (act === 'lib-del') { if (state.libSure === id) { state.libSure = ''; libDelete(id).then(renderLibrary); } else { state.libSure = id; b.textContent = tr('Delete for good'); } }
+    else if (act === 'home') goHome();
+    else if (act === 'binder-export') exportBinder();
+    else if (act === 'lib-save') saveCardFile(id).then((ok) => { if (ok) say('Saved a copy as a file.'); });
+    else if (act === 'lib-keep') keepWorkflow().then((kept) => { if (kept) say('Kept. It saves itself in this browser from now on.'); render(); });
+    else if (act === 'lib-open') (id === state.cardId ? Promise.resolve(true) : openCard(id)).then((ok) => { if (ok) { state.libSure = ''; say('Opened from Your workflows.'); enterEditor(); } });
+    else if (act === 'lib-del') { if (state.libSure === id) { state.libSure = ''; libDelete(id).then(() => render()); } else { state.libSure = id; renderLanding(); } }
     else if (act === 'pin-toggle') pinFinding(b.dataset.key);
     else if (act === 'accept-start') { state.accepting = b.dataset.key; renderFindings(); }
     else if (act === 'accept-cancel') { state.accepting = ''; renderFindings(); }
@@ -1062,6 +1176,8 @@ function onKey(ev) {
     if (mod && key === 'd') { ev.preventDefault(); duplicateSelected(); return; }
     if (mod || ev.altKey) return;
     if (key === 'escape') { if (state.selection.size) { setSelection([]); render(); } return; }
+    // A: the element last added, again.
+    if (key === 'a' && !ev.shiftKey && lastAddedLabel() && !state.readOnly) { ev.preventDefault(); addAgain(); return; }
     if (!state.selection.size || state.readOnly) return;
     if (key === 'delete' || key === 'backspace') { ev.preventDefault(); removeSelected(); return; }
     const step = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }[key];
@@ -1100,7 +1216,7 @@ function boot() {
     $('filePick').addEventListener('change', (ev) => {
         const file = ev.target.files && ev.target.files[0];
         ev.target.value = '';
-        if (file) file.text().then((text) => { if (openFileFrom(text)) enterEditor(); });
+        if (file) file.text().then(openAnyFile);
     });
     $('dictPick').addEventListener('change', (ev) => {
         const file = ev.target.files && ev.target.files[0];
@@ -1108,10 +1224,23 @@ function boot() {
         if (file) file.text().then((text) => openDictionaryFrom(file.name, text));
     });
     $('exportDlg').addEventListener('change', renderExport);
+    $('reportOpts').addEventListener('change', onReportChange);
+    window.addEventListener('resize', () => { if ($('reportDlg').open) fitReportFrame(); });
+    // A file let go over the start page's target is opened like a picked one.
+    const dropBox = $('landingDrop');
+    dropBox.addEventListener('dragover', (ev) => { ev.preventDefault(); dropBox.classList.add('drag'); });
+    dropBox.addEventListener('dragleave', () => dropBox.classList.remove('drag'));
+    dropBox.addEventListener('drop', (ev) => {
+        ev.preventDefault(); dropBox.classList.remove('drag');
+        const file = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+        if (file) file.text().then(openAnyFile);
+    });
+    $('landingName').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); landingNew(); } });
     $('passInput').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); runUnseal(); } });
     // Whether a folded list is open is remembered across redraws.
     document.addEventListener('toggle', (ev) => {
         if (ev.target && ev.target.id === 'acceptedList') state.acceptedOpen = ev.target.open;
+        if (ev.target && ev.target.classList && ev.target.classList.contains('f-class') && ev.target.isConnected) { if (ev.target.open) state.clsShut.delete(ev.target.dataset.cls); else state.clsShut.add(ev.target.dataset.cls); }
         if (ev.target && ev.target.id === 'casesList') state.casesOpen = ev.target.open;
     }, true);
     window.addEventListener('resize', drawBoard);
@@ -1132,6 +1261,10 @@ function boot() {
     liveBoot();
     // A sealed link: ask for its passphrase.
     if (takeSealFromAddress()) openDlg('passDlg');
+    // A plain link: the address builds the workflow.
+    const plain = takePlainFromAddress();
+    if (plain) runPlain(plain);
+    window.addEventListener('hashchange', onHashChange);
     window.dispatchEvent(new Event('flow:ready'));
 }
 boot();

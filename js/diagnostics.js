@@ -14,7 +14,7 @@ function findFindings(doc) {
     // them are the workflow's and are left as they are.
     const T = (key, params) => (typeof window !== 'undefined' && window.t ? window.t(key, params) : Object.keys(params || {}).reduce((x, k) => x.split('{' + k + '}').join(String(params[k])), key));
     const out = [];
-    const add = (check, level, id, text) => out.push({ key: check + ':' + id, level, id, text, group: checkGroup(check) });
+    const add = (check, level, id, text, cls) => out.push({ key: check + ':' + id, level, id, text, group: checkGroup(check), cls: cls || checkClass(check) });
     const stops = doc.screens.concat(doc.decisions);
     const stopById = new Map(stops.map((s) => [s.id, s]));
 
@@ -41,6 +41,8 @@ function findFindings(doc) {
         if (s.stub) return;
         const leaving = out_.get(s.id).filter((l) => l.to !== s.id);
         if (!leaving.length && !s.end) add('dead-end', 'warn', s.id, T('"{name}" leads nowhere and is not marked as an end.', { name: stopName(s) }));
+        // As it was when it was added: the name it was given, and nothing drawn.
+        if (/^Screen \d+$/.test(s.name.trim()) && !doc.sizes.some((z) => z.screen === s.id && doc.elements.some((e) => e.size === z.id))) add('screen-untouched', 'warn', s.id, T('"{name}" is as it was when it was added: it has no name of its own and nothing is drawn on it.', { name: stopName(s) }));
         if (leaving.length && s.end) add('end-leads-on', 'warn', s.id, T('"{name}" is marked as an end but leads on.', { name: stopName(s) }));
     });
 
@@ -49,7 +51,9 @@ function findFindings(doc) {
         if (d.stub) return;
         const branches = out_.get(d.id);
         if (!d.name.trim()) add('decision-unnamed', 'warn', d.id, T('A decision has no question written on it.'));
-        if (branches.length < 2) add('decision-branches', 'err', d.id, branches.length ? T('"{name}" has one branch; a decision needs at least two.', { name: stopName(d) }) : T('"{name}" has no branches; a decision needs at least two.', { name: stopName(d) }));
+        // No branch at all is a decision that leads nowhere; one is a decision not finished.
+        if (branches.length < 2) add('decision-branches', 'err', d.id, branches.length ? T('"{name}" has one branch; a decision needs at least two.', { name: stopName(d) }) : T('"{name}" has no branches; a decision needs at least two.', { name: stopName(d) }), branches.length ? '' : 'decision-nowhere');
+        else if (new Set(branches.map((l) => l.to)).size === 1) add('decision-same', 'warn', d.id, T('Every branch of "{name}" leads to the same place, so it decides nothing.', { name: stopName(d) }));
         const seen = new Map();
         branches.forEach((l) => {
             const cond = l.cond.trim().toLowerCase();
@@ -81,7 +85,7 @@ function findFindings(doc) {
     // How each type draws its text: [weight, padding] for text that wraps,
     // [space before, space after] for text on one line. The same numbers as
     // the drawing in js/ui.js.
-    const WRAPS = { text: [400, 0], heading: [700, 0], link: [500, 0], button: [600, 8], card: [600, 16], chip: [500, 8], alert: [400, 14], image: [400, 8], box: [400, 8] };
+    const WRAPS = { text: [400, 0], heading: [700, 0], link: [500, 0], button: [600, 8], card: [600, 16], chip: [500, 8], alert: [400, 14], image: [400, 8], box: [400, 8], dropzone: [400, 12] };
     const ONE_LINE = { input: [12, 12], select: [12, 34], checkbox: [30, 0], radio: [30, 0], toggle: [53, 0], topbar: [30, 30] };
     const USUAL_TEXT = new Set(Object.values(ELEMENT_KIT).map((k) => k.text).filter((t) => t && !t.includes('\n')).concat(['Lorem ipsum', 'Label']).map((t) => t.toLowerCase()));
     const styleOf = new Map(doc.styles.map((y) => [y.id, y]));
@@ -108,8 +112,8 @@ function findFindings(doc) {
         return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     };
     const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-    const SURFACE = { button: '#0f172a', chip: '#f1f5f9', alert: '#fef3c7', topbar: '#f1f5f9', box: '#f1f5f9' };
-    const TEXT_ON = { button: '#ffffff', link: '#1d4ed8', box: '#64748b' };
+    const SURFACE = { button: '#0f172a', chip: '#f1f5f9', alert: '#fef3c7', topbar: '#f1f5f9', box: '#f1f5f9', dropzone: '#f8fafc' };
+    const TEXT_ON = { button: '#ffffff', link: '#1d4ed8', box: '#64748b', dropzone: '#64748b' };
     const wordsByLang = doc.langs.map((l) => [l, new Map(doc.words.filter((w) => w.lang === l.id).map((w) => [w.key, w.text]))]);
     const sizeUse = new Map();
     doc.elements.forEach((e) => { if (drawsText(e) && e.text && !e.textStyle) sizeUse.set(e.fs, (sizeUse.get(e.fs) || 0) + 1); });
@@ -152,7 +156,7 @@ function findFindings(doc) {
             const named = e.name.trim() !== '';
             if (e.type === 'image' && !e.text.trim()) add('image-no-desc', 'warn', e.id, T('An image does not say what it shows.'));
             if (['input', 'textarea', 'select', 'slider'].includes(e.type) && !named) add('no-label', 'warn', e.id, T('{what} has no name. A field needs a label.', { what: title }));
-            if (['button', 'link', 'checkbox', 'radio', 'toggle'].includes(e.type) && !named && !e.text.trim()) add('control-unnamed', 'warn', e.id, T('{x}: it has no text and no name.', { x: T(kit.label) }));
+            if (['button', 'link', 'checkbox', 'radio', 'toggle', 'dropzone'].includes(e.type) && !named && !e.text.trim()) add('control-unnamed', 'warn', e.id, T('{x}: it has no text and no name.', { x: T(kit.label) }));
             if (e.type === 'icon' && !named && doc.links.some((l) => l.fromEl === e.id)) add('control-unnamed', 'warn', e.id, T('An icon that leads somewhere has no name.'));
         });
         // Layout: controls on top of each other or, on a touch screen, too close.
@@ -242,7 +246,7 @@ function findFindings(doc) {
 
 // Which heading a check is listed under.
 const CHECK_GROUPS = [
-    ['Flow', ['no-start', 'two-starts', 'unreached', 'dead-end', 'end-leads-on', 'decision-unnamed', 'decision-branches', 'branch-unnamed', 'branch-twice', 'link-unnamed']],
+    ['Flow', ['no-start', 'two-starts', 'unreached', 'dead-end', 'end-leads-on', 'screen-untouched', 'decision-unnamed', 'decision-branches', 'decision-same', 'branch-unnamed', 'branch-twice', 'link-unnamed']],
     ['Size', ['target-small', 'target-touch', 'targets-close']],
     ['Text', ['text-small', 'text-fit', 'placeholder', 'contrast']],
     ['Layout', ['outside', 'overlap', 'near-miss']],
@@ -254,6 +258,33 @@ const CHECK_GROUPS = [
     ['Sources', ['at-no-source', 'source-no-url', 'source-http', 'source-secret', 'built-no-code']]
 ];
 const checkGroup = (check) => (check.startsWith('text-fit') ? 'Text' : (CHECK_GROUPS.find(([, list]) => list.includes(check)) || ['Other'])[0]);
+
+// What kind of finding a check gives: its classification. Finer than the
+// heading, and what the Findings list is sorted into. [key, name, checks],
+// in the order they are listed. One check can land in another class by what
+// it found (a decision with no branch at all leads nowhere).
+const CHECK_CLASSES = [
+    ['start', 'Where it starts', ['no-start', 'two-starts']],
+    ['unreached', 'Cannot be reached', ['unreached']],
+    ['dead-end', 'Dead ends', ['dead-end', 'end-leads-on']],
+    ['decision-nowhere', 'Decisions that lead nowhere', ['decision-same']],
+    ['decision-unfinished', 'Decisions not finished', ['decision-unnamed', 'decision-branches', 'branch-unnamed', 'branch-twice']],
+    ['way-unnamed', 'Ways that do not say what happens', ['link-unnamed']],
+    ['unchanged', 'Unchanged since it was added', ['placeholder', 'screen-untouched']],
+    ['press', 'Hard to press', ['target-small', 'target-touch', 'targets-close']],
+    ['read', 'Hard to read', ['text-small', 'contrast']],
+    ['fit', 'Text that does not fit', ['text-fit']],
+    ['place', 'Out of place', ['outside', 'overlap', 'near-miss']],
+    ['unnamed', 'Missing names', ['image-no-desc', 'no-label', 'control-unnamed']],
+    ['styles', 'Sizes used once', ['size-once']],
+    ['blocks', 'Blocks not in use', ['block-empty', 'block-unused']],
+    ['languages', 'Languages', ['key-clash', 'lang-missing', 'lang-same', 'lang-twice']],
+    ['secrets', 'Secrets and open addresses', ['base-http', 'base-secret', 'source-http', 'source-secret']],
+    ['testing', 'Testing', ['base-no-url', 'no-live-address', 'test-failed']],
+    ['sources', 'Sources', ['at-no-source', 'source-no-url', 'built-no-code']]
+];
+const checkClass = (check) => (check.startsWith('text-fit') ? 'fit' : (CHECK_CLASSES.find(([, , list]) => list.includes(check)) || ['other'])[0]);
+const className = (cls) => (CHECK_CLASSES.find(([key]) => key === cls) || ['', 'Other'])[1];
 const checkOfKey = (key) => key.slice(0, key.lastIndexOf(':'));
 
 // A document's findings with what someone has said about them:

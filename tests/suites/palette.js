@@ -5,7 +5,7 @@ suite(async (ok, eq) => {
     const shown = () => getComputedStyle(body).display !== 'none';
 
     // ---- the grid ----
-    eq('a tile for each of the 25 elements, in three groups', [tiles().length, document.querySelectorAll('#palette .lib-grid').length, Array.from(document.querySelectorAll('#palette .pf-head')).map((h) => h.textContent)], [25, 3, ['Content', 'Controls', 'Structure']]);
+    eq('a tile for each of the 26 elements, in three groups', [tiles().length, document.querySelectorAll('#palette .lib-grid').length, Array.from(document.querySelectorAll('#palette .pf-head')).map((h) => h.textContent)], [26, 3, ['Content', 'Controls', 'Structure']]);
     ok('each tile is a drawing of the element and its name', tiles().every((t) => t.querySelector('svg.lib-pic') && t.querySelector('svg.lib-pic').children.length > 0 && t.querySelector('.lib-name').textContent.trim() !== ''));
     ok('the drawings are sound', !/NaN|undefined/.test(document.getElementById('palette').innerHTML));
     ok('the grid is three tiles across', getComputedStyle(document.querySelector('#palette .lib-grid')).gridTemplateColumns.split(' ').length === 3);
@@ -29,7 +29,7 @@ suite(async (ok, eq) => {
     selectId(addedId);
     ok('chosen again, its details have the rail: the grid has folded to one row', !shown() && !row.hidden && rail.classList.contains('lib-wrapped'));
     eq('the row says what it is and what a click does', [row.querySelector('.lw-name').textContent, row.querySelector('.lw-hint').textContent, row.getAttribute('aria-expanded'), row.querySelector('.lw-caret').textContent], ['Elements', 'Keep open', 'false', '▸']);
-    ok('the element\'s details are right under it', document.querySelector('#railProps .rail-title').textContent === 'Toggle' && document.getElementById('railProps').getBoundingClientRect().top - row.getBoundingClientRect().bottom < 60);
+    ok('the element\'s details are right under it', document.querySelector('#railProps .rail-title').textContent === 'Toggle' && document.getElementById('railProps').getBoundingClientRect().top - row.getBoundingClientRect().bottom < 120);
     undo();
     [pay.id, link.id, ask.id].forEach((id) => { selectId(id); ok(`folded for a selected ${kindOfId(id).slice(0, -1)}`, !shown() && !row.hidden); });
     setSelection([selEntry('elements', pay.id), selEntry('screens', cart.id)]); render();
@@ -54,7 +54,7 @@ suite(async (ok, eq) => {
     setSelection([selEntry('elements', pay.id), selEntry('elements', state.doc.elements.find((e) => e.type === 'image').id)]); render();
     makeBlock();
     const block = state.doc.blocks[0];
-    eq('a block gets a tile of its own, in a fourth group', [tiles().length, Array.from(document.querySelectorAll('#palette .pf-head')).map((h) => h.textContent)[3], !!document.querySelector(`#palette [data-type="block:${block.id}"]`)], [26, 'Blocks', true]);
+    eq('a block gets a tile of its own, in a fourth group', [tiles().length, Array.from(document.querySelectorAll('#palette .pf-head')).map((h) => h.textContent)[3], !!document.querySelector(`#palette [data-type="block:${block.id}"]`)], [27, 'Blocks', true]);
     setF(block.id, 'name', 'Buy box');
     eq('renamed, its tile follows', document.querySelector(`#palette [data-type="block:${block.id}"] .lib-name`).textContent, 'Buy box');
     setLocale('es');

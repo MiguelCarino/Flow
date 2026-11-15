@@ -5,7 +5,7 @@ suite(async (ok, eq) => {
     const board = document.getElementById('board');
     eq('the kit has an entry for every type, and no other', Object.keys(ELEMENT_KIT).sort(), ELEMENT_TYPES.slice().sort());
     ok('a block is not added like the others', addElement('block') === '');
-    eq('twenty-five elements', TYPES.length, 25);
+    eq('twenty-six elements', TYPES.length, 26);
     eq('the Add list offers each one', Array.from(document.querySelectorAll('#palette [data-act="add-el"]')).map((b) => b.dataset.type).sort(), TYPES.slice().sort());
     ok('every element is in a group that is shown', TYPES.map((t) => ELEMENT_KIT[t]).every((k) => ELEMENT_GROUPS.some(([g]) => g === k.group)));
 
@@ -13,7 +13,7 @@ suite(async (ok, eq) => {
     TYPES.forEach((type) => { selectId(screen); addElement(type); });
     eq('each can be added', state.doc.elements.map((e) => e.type).sort(), TYPES.slice().sort());
     const drawn = Array.from(board.querySelectorAll('.el'));
-    eq('and each is drawn', drawn.length, 25);
+    eq('and each is drawn', drawn.length, 26);
     ok('with no broken number in the drawing', !/NaN|undefined|Infinity/.test(board.innerHTML));
     ok('each has something to press on', drawn.every((g) => { const b = g.getBoundingClientRect(); return b.width > 0 && b.height > 0; }));
     ok('nothing is drawn with foreignObject', !board.querySelector('foreignObject'));

@@ -270,6 +270,14 @@ function elementSvg(e, u, inside) {
             + `<circle cx="${n1(Math.min(w - r, Math.max(r, x)))}" cy="${n1(mid)}" r="${n1(r)}" fill="#ffffff" stroke="${INK.button}" ${thin}/>`;
         break;
     }
+    case 'dropzone': {
+        // A dashed box, an arrow into a tray when there is room, and what it asks for.
+        const th = wrapLines(text, fs, W(400), Math.max(8, w - 24)).length * fs * 1.25, pic = h >= th + 52, dy = pic ? 14 : 0, cy = mid + dy - th / 2 - 20;
+        inner = rect(F('#f8fafc'), INK.inputLine, 10, ' stroke-dasharray="6 4"')
+            + (pic ? `<path d="M ${n1(w / 2)} ${n1(cy + 8)} v -18 m -7 7 l 7 -7 l 7 7 M ${n1(w / 2 - 14)} ${n1(cy + 4)} v 8 h 28 v -8" fill="none" stroke="${INK.dim}" ${thin} stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>` : '')
+            + `<g transform="translate(0 ${dy})">${block(K(INK.dim), W(400), { centre: true, pad: 12 })}</g>`;
+        break;
+    }
     case 'image':
         inner = rect(INK.image, INK.imageLine, 4) + `<path d="M0 0 L${w} ${h} M${w} 0 L0 ${h}" stroke="${INK.imageLine}" ${thin} pointer-events="none"/>` + block(INK.dim, 400, { centre: true, pad: 8 });
         break;
@@ -657,7 +665,16 @@ function renderFindings() {
         return h + '</div>';
     };
     $('findingsCount').textContent = open.length ? String(open.length) : '';
-    let h = open.length ? open.map(row).join('') : '<p class="pf-note">Nothing to report.</p>';
+    // Sorted into what kind of finding each is (CHECK_CLASSES, js/diagnostics.js),
+    // the pinned ones first under a heading of their own.
+    let h = '';
+    if (!open.length) h = '<p class="pf-note">Nothing to report.</p>';
+    else {
+        const sec = (key, label, list) => `<details class="f-class" data-cls="${key}"${state.clsShut.has(key) ? '' : ' open'}><summary data-raw><span class="f-dot ${list.some((f) => f.level === 'err') ? 'err' : 'warn'}" aria-hidden="true"></span><span class="f-cname">${esc(label)}</span><span class="count">${list.length}</span></summary>${list.map(row).join('')}</details>`;
+        const pinned = open.filter((f) => f.pin), rest = open.filter((f) => !f.pin);
+        if (pinned.length) h += sec('pinned', tr('Pinned'), pinned);
+        CHECK_CLASSES.concat([['other', 'Other']]).forEach(([key, label]) => { const list = rest.filter((f) => f.cls === key); if (list.length) h += sec(key, tr(label), list); });
+    }
     if (accepted.length) h += `<details class="f-more"${state.acceptedOpen ? ' open' : ''} id="acceptedList"><summary data-raw>${esc(tr('Accepted ({n})', { n: accepted.length }))}</summary>${accepted.map(row).join('')}</details>`;
     if (stale.length) {
         h += `<details class="f-more"><summary data-raw>${esc(tr('No longer found ({n})', { n: stale.length }))}</summary>` + stale.map((r) => `<div class="finding gone"><p class="f-why">${esc(kindOfId(r.id) === 'accepts' ? tr('Accepted: {x}', { x: r.reason }) : tr('Pinned'))} <span class="dim">${esc(tr(checkGroup(checkOfKey(r.finding))))}</span></p>`
@@ -679,8 +696,8 @@ function tileSvg(type, block) {
     // A block's tile is the block itself, small: what is drawn in it.
     if (block) return `<svg class="lib-pic" viewBox="-3 -3 ${block.w + 6} ${block.h + 6}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">${elementsOf(state.doc, block.id).map((c) => elementSvg(c, 1, true)).join('')}</svg>`;
     // The element at a size that fits a tile, with a word or two in it.
-    const w = block ? block.w : Math.min(kit.w, type === 'topbar' || type === 'tabbar' ? 150 : 120), h = block ? block.h : Math.min(kit.h, 64);
-    const text = kit.lines ? kit.text.split('\n').slice(0, type === 'table' ? 3 : 2).join('\n') : type === 'image' ? '' : kit.text.split(' ').slice(0, 2).join(' ');
+    const w = block ? block.w : Math.min(kit.w, type === 'topbar' || type === 'tabbar' ? 150 : 120), h = block ? block.h : Math.min(kit.h, type === 'dropzone' ? 84 : 64);
+    const text = kit.lines ? kit.text.split('\n').slice(0, type === 'table' ? 3 : 2).join('\n') : type === 'image' ? '' : kit.tile ? kit.tile : kit.text.split(' ').slice(0, 2).join(' ');
     const el = readRec('elements', { id: 'el_tile', size: 'siz_tile', type, block: block ? block.id : '', w, h: kit.lines && type !== 'tabs' ? Math.max(h, 44) : h, text, fs: Math.min(kit.fs, 14), on: true, value: 60 });
     return `<svg class="lib-pic" viewBox="-3 -3 ${el.w + 6} ${el.h + 6}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">${elementSvg(Object.assign(el, { x: 0, y: 0 }), 1, true)}</svg>`;
 }
@@ -716,6 +733,14 @@ function renderPalette() {
     });
     document.querySelectorAll('[data-act="add-screen"], [data-act="add-decision"], [data-act="add-block"]').forEach((b) => { b.disabled = state.readOnly; });
     $('addHint').hidden = !!target;
+    // Add again: the element last added, whether or not the grid is folded.
+    const again = $('addAgain'), last = lastAddedLabel();
+    again.hidden = !last || state.readOnly;
+    if (last) {
+        again.querySelector('.aa-name').textContent = tr('{x} again', { x: last });
+        again.title = tr('Add another {x} to the selected screen (A)', { x: last });
+        again.classList.toggle('off', !target || (inBlock && state.lastAdded.startsWith('block:')));
+    }
     updateRailWrap();
 }
 // The Add grid folds to one row while what is selected is not something to
@@ -795,6 +820,7 @@ function render(opts = {}) {
     $('undoBtn').disabled = !canUndo() || state.readOnly;
     $('redoBtn').disabled = !canRedo() || state.readOnly;
     $('roBanner').hidden = !state.readOnly;
+    $('keepMenu').hidden = !!state.cardId || state.readOnly || !!state.live;
     $('roBanner').textContent = tr(state.live && state.live.role === 'view' ? 'You can look at this live workflow but not change it.' : 'This workflow was made by a newer Flow. It is open to read only.');
     renderLive();
     livePresenceSoon();

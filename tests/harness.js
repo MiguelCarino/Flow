@@ -33,7 +33,7 @@ window.suite = (fn) => window.addEventListener('load', () => setTimeout(async ()
         showLanding(false); state.simple = false; state.view = 'board';
         setLocale('en');
         // ...with the board on its light background, whatever this browser had chosen.
-        setBoardInk(''); state.libPinned = false; state.libHeld = false;
+        setBoardInk(''); state.libPinned = false; state.libHeld = false; state.lastAdded = ''; state.clsShut.clear();
         state.opSinks.length = 0;
         loadDoc(newDoc(''), false);
         await fn(ok, eq);

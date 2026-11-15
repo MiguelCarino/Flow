@@ -34,7 +34,7 @@ const SCREEN_STATUS = ['drawn', 'designed', 'built'];
 const SIZE_INPUT = ['touch', 'pointer', 'remote'];
 const SIZE_DISTANCE = ['near', 'far'];
 const ELEMENT_TYPES = ['box', 'text', 'heading', 'link', 'image', 'icon', 'avatar', 'divider',
-    'button', 'input', 'textarea', 'select', 'checkbox', 'radio', 'toggle', 'slider',
+    'button', 'input', 'textarea', 'select', 'checkbox', 'radio', 'toggle', 'slider', 'dropzone',
     'card', 'list', 'table', 'topbar', 'tabbar', 'tabs', 'chip', 'progress', 'alert',
     // One placing of a block (its `block` field says which).
     'block'];

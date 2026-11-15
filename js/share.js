@@ -15,7 +15,8 @@ const PUBLIC_BASE = 'https://flow.carino.systems/';
 const b64url = (bytes) => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 const unb64url = (s) => { const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/')); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
 async function pipeBytes(bytes, stream) {
-    const w = stream.writable.getWriter(); w.write(bytes); w.close();
+    // A stream that fails says so through what is read; these two would say it again, to nobody.
+    const w = stream.writable.getWriter(); w.write(bytes).catch(() => {}); w.close().catch(() => {});
     return new Uint8Array(await new Response(stream.readable).arrayBuffer());
 }
 async function sealKey(pass, salt) {
@@ -55,11 +56,50 @@ async function unsealText(fragment, pass) {
 function shareBase() {
     return location.protocol === 'http:' || location.protocol === 'https:' ? location.origin + location.pathname : PUBLIC_BASE;
 }
-async function makeShareLink(what, pass, noSources, simple) {
+// ---- Plain links ----
+// The same link without the lock, as Topo's: the workflow, deflated, after
+// the #, and the address alone builds it again. Nothing is sent to a server,
+// but it is not private: whoever gets the link has the workflow.
+//
+//   #~<base64url of the file's JSON, deflate-raw>
+//   #u~<base64url of the file's JSON>     a browser that cannot deflate
+const PLAIN_MARK = '~', RAW_MARK = 'u~';
+const isPlainFragment = (f) => { const s = String(f || '').replace(/^#/, ''); return s.startsWith(PLAIN_MARK) || s.startsWith(RAW_MARK); };
+async function plainText(text) {
+    const bytes = new TextEncoder().encode(text);
+    if (typeof CompressionStream !== 'function') return RAW_MARK + b64url(bytes);
+    return PLAIN_MARK + b64url(await pipeBytes(bytes, new CompressionStream('deflate-raw')));
+}
+async function unplainText(fragment) {
+    const f = String(fragment || '').replace(/^#/, '');
+    if (!isPlainFragment(f)) throw new Error('This is not a Flow link.');
+    const raw = f.startsWith(RAW_MARK);
+    try {
+        const bytes = unb64url(f.slice(raw ? RAW_MARK.length : PLAIN_MARK.length));
+        if (!bytes.length) throw new Error('empty');
+        return new TextDecoder('utf-8', { fatal: true }).decode(raw ? bytes : await pipeBytes(bytes, new DecompressionStream('deflate-raw')));
+    } catch (e) { throw new Error('This link is damaged or was cut short.'); }
+}
+// plain: without the passphrase (and pass is not read).
+async function makeShareLink(what, pass, noSources, simple, plain) {
     const { doc, part, ids } = exportDoc(what, noSources);
     if (!ids.length) throw new Error('There is nothing to share in what you chose.');
+    const text = JSON.stringify(fileEnvelope(doc, part));
     // ?simple opens the link in the Simple view: for a client who is to read it.
-    return shareBase() + (simple ? '?simple' : '') + '#' + await sealText(JSON.stringify(fileEnvelope(doc, part)), pass);
+    return shareBase() + (simple ? '?simple' : '') + '#' + (plain ? await plainText(text) : await sealText(text, pass));
+}
+// A plain link in the address: taken out of it, and the workflow built from it.
+function takePlainFromAddress() {
+    if (!isPlainFragment(location.hash) || location.hash.length < 4) return '';
+    const frag = location.hash.slice(1);
+    try { history.replaceState(null, '', location.pathname + location.search + '#editor'); } catch (e) { /* a file: page cannot; the link stays */ }
+    return frag;
+}
+async function openPlain(fragment) {
+    const res = openFileText(await unplainText(fragment));
+    if (res.error) throw new Error(res.error);
+    openDoc(res.doc, res.readOnly);
+    return res;
 }
 // A sealed link in the address bar: taken out of it at once (so it is not
 // left in the history under this page), then opened when the passphrase is given.

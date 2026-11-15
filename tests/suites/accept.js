@@ -1,7 +1,7 @@
 // Accepting a finding with a reason, and pinning one to come back to.
 suite(async (ok, eq) => {
     const board = document.getElementById('board'), rail = () => document.getElementById('railFindings');
-    const rows = () => Array.from(rail().querySelectorAll(':scope > .finding'));
+    const rows = () => Array.from(rail().querySelectorAll(':scope > .f-class > .finding'));
     const count = () => document.getElementById('findingsCount').textContent;
     loadExample();
     const cart = state.doc.screens.find((s) => s.name === 'Cart'), receipt = state.doc.screens.find((s) => s.name === 'Receipt');

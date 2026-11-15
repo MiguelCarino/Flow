@@ -51,8 +51,11 @@ here. See [docs/SCOPE.md](docs/SCOPE.md) for what comes next.
 - **Files.** Save a copy as `.flow.json` and open it again. The format is
   published: [docs/FORMAT.md](docs/FORMAT.md).
 - **Export.** The whole workflow, the selected screens, one way or one
-  screen: as a document that merges back, pictures, a storyboard, a report,
-  a copy sheet, or a sealed link that only its passphrase opens.
+  screen: as a document that merges back, pictures, a storyboard, a
+  report in the fleet's document designs (white, black or blue) as a PDF or
+  an HTML file, a copy sheet, or a link that carries the workflow: sealed,
+  so only its passphrase opens it, or plain, so the address alone builds it
+  again.
 - **Testing.** Give the workflow a live address (staging, say) and each
   screen its path. Flow lists every way from the start to an end as a test
   case; run one, open each real screen in another tab, and say whether it
@@ -101,7 +104,8 @@ Scripts load in this order: `state -> i18n -> model -> data -> diagnostics -> ui
 | `js/simple.js` | The Simple view. |
 | `js/test.js` | Test cases and runs against live addresses. |
 | `js/export.js` | Parts and merging, pictures, zip, copy sheet, report. |
-| `js/share.js` | Sealed share links. |
+| `js/report.js` | The report in the fleet's document designs, its preview, and its PDF or HTML file. |
+| `js/share.js` | Share links, sealed and plain. |
 | `js/library.js` | Your workflows, kept in the browser. |
 | `js/live.js` | Live rooms, when served by `server/`. |
 | `server/` | The Flow server (Go): static files and live rooms. |
@@ -122,3 +126,6 @@ See [tests/README.md](tests/README.md).
 ## Licence
 
 AGPL-3.0-or-later. The fonts keep their own licence (`fonts/OFL.txt`).
+`carino-html2canvas.js` is html2canvas 1.4.1 by Niklas von Hertzen, under the
+MIT licence ([LICENSE-html2canvas.txt](LICENSE-html2canvas.txt)); it draws
+the pages of a report's PDF and is loaded only when one is made.

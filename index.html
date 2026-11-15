@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <link rel="icon" type="image/svg+xml" href="logo.svg">
+    <link rel="alternate icon" type="image/webp" href="logo.webp">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Privacy, not decoration. A workflow being drawn is someone's unreleased
@@ -66,10 +67,13 @@
                 <button class="cs-menu-item" role="menuitem" data-act="open">Open a file…</button>
                 <button class="cs-menu-item" role="menuitem" data-act="save">Save a copy <span class="cs-menu-note">.json</span></button>
                 <button class="cs-menu-item" role="menuitem" data-act="export-open">Export… <span class="cs-menu-note">pictures, report, link</span></button>
+                <button class="cs-menu-item" role="menuitem" data-act="report-open">Report… <span class="cs-menu-note">PDF or HTML</span></button>
+                <button class="cs-menu-item" role="menuitem" data-act="share-open">Share a link… <span class="cs-menu-note">locked or plain</span></button>
                 <div class="cs-menu-div"></div>
                 <!-- Only when this page is served by a Flow server (js/live.js). -->
                 <button class="cs-menu-item" role="menuitem" data-act="live" id="liveMenu" hidden>Live… <span class="cs-menu-note">work on it together</span></button>
-                <button class="cs-menu-item" role="menuitem" data-act="lib">Your workflows… <span class="cs-menu-note">in this browser</span></button>
+                <button class="cs-menu-item" role="menuitem" data-act="home">All workflows <span class="cs-menu-note">the start page</span></button>
+                <button class="cs-menu-item" role="menuitem" data-act="lib-keep" id="keepMenu">Keep this workflow <span class="cs-menu-note">in this browser</span></button>
                 <div class="cs-menu-div"></div>
                 <button class="cs-menu-item" role="menuitem" data-act="merge">Merge a part back in…</button>
                 <button class="cs-menu-item" role="menuitem" data-act="sheet-in">Bring in a copy sheet… <span class="cs-menu-note">.csv</span></button>
@@ -84,33 +88,72 @@
          visitor goes in (enterEditor, js/app.js). -->
     <div id="landing" class="landing" hidden>
         <div class="landing-inner">
-            <div class="landing-mark" aria-hidden="true">
-                <img class="mk-gold" src="logo.svg" alt="" width="58" height="58" decoding="async">
-                <img class="mk-color" src="logo-color.svg" alt="" width="58" height="58" decoding="async">
-                <!-- Three screens and the way through them, a pulse running along it. -->
-                <svg class="flowline" viewBox="0 0 220 44" preserveAspectRatio="xMidYMid meet">
-                    <polyline class="trace" pathLength="100" points="26,22 78,22 98,10 122,10 142,22 194,22" />
-                    <polyline class="pulse" pathLength="100" points="26,22 78,22 98,10 122,10 142,22 194,22" />
-                    <g class="stops">
-                        <rect x="6" y="6" width="20" height="32" rx="3" />
-                        <rect x="100" y="-6" width="20" height="32" rx="3" />
-                        <rect x="194" y="6" width="20" height="32" rx="3" />
-                    </g>
-                </svg>
+            <!-- The mark, centred, with one piece of motion under it: three
+                 stops and the way through them, a pulse running along it. -->
+            <section class="landing-hero short-hero">
+                <div class="landing-mark" aria-hidden="true">
+                    <img class="mk-gold" src="logo.svg" alt="" width="58" height="58" decoding="async">
+                    <img class="mk-color" src="logo-color.svg" alt="" width="58" height="58" decoding="async">
+                    <svg class="flowline" viewBox="0 0 200 40" preserveAspectRatio="xMidYMid meet">
+                        <polyline class="trace" pathLength="100" points="6,20 36,20 36,7 66,7 96,7 96,33 126,33 156,33 156,20 194,20" />
+                        <polyline class="pulse" pathLength="100" points="6,20 36,20 36,7 66,7 96,7 96,33 126,33 156,33 156,20 194,20" />
+                        <g class="dots">
+                            <rect x="2" y="16" width="8" height="8" rx="1.5" />
+                            <rect x="62" y="3" width="8" height="8" rx="1.5" />
+                            <rect x="122" y="29" width="8" height="8" rx="1.5" />
+                            <rect x="190" y="16" width="8" height="8" rx="1.5" />
+                        </g>
+                    </svg>
+                </div>
+                <h1><span>Every screen, and every way between them.</span><br><span class="gold">Draw it once, and it checks itself.</span></h1>
+                <p class="landing-lede">Screens at any size, the decisions between them and what takes the user from one to the next, with dead ends and unreachable screens found for you, and a report to hand over.</p>
+            </section>
+
+            <!-- One target: a new workflow, named here. It is also where a
+                 file, or a whole binder, is dropped. -->
+            <div class="landing-ways">
+                <div class="landing-drop" id="landingDrop">
+                    <svg class="landing-drop-icon" viewBox="0 0 48 40" aria-hidden="true">
+                        <rect x="2" y="6" width="12" height="22" rx="2" />
+                        <path d="M14 17 H19 M29 17 H34" />
+                        <path d="M24 11 L29 17 L24 23 L19 17 Z" />
+                        <rect x="34" y="6" width="12" height="22" rx="2" />
+                    </svg>
+                    <h2 id="landingNone">No workflow is kept in this browser yet. Make the first one:</h2>
+                    <h2 id="landingMore" hidden>Start a new workflow</h2>
+                    <div class="landing-new-row">
+                        <input class="input" type="text" id="landingName" maxlength="120" placeholder="Its name, for example Checkout" aria-label="Name of the new workflow">
+                        <button type="button" class="landing-drop-btn primary" data-act="landing-new">Create a workflow</button>
+                    </div>
+                    <p><span>It is kept in this browser and saves itself on every change.</span><br><span class="hint-drop">Or drop a workflow file, or a whole binder, here.</span><span class="hint-open">Or open a workflow file, or a whole binder.</span></p>
+                    <div class="landing-drop-actions">
+                        <button type="button" class="landing-drop-btn" data-act="open">Open a file…</button>
+                    </div>
+                </div>
             </div>
-            <h1 class="landing-title"><span>Every screen, and every way between them.</span><br><span class="gold">Draw it once, and it checks itself.</span></h1>
-            <p class="landing-lede">
-                <span>Screens at any size, the decisions between them and what takes the user from one to the next, with dead ends and unreachable screens found for you, and a report to hand over.</span>
-                <span class="landing-local">It runs in this tab: no server, no upload, no account.</span>
-            </p>
-            <div class="landing-acts">
-                <button type="button" class="btn btn-primary" id="landingGo" data-act="enter">Start drawing</button>
-                <button type="button" class="btn btn-ghost" data-act="example">Open the example</button>
-                <button type="button" class="btn btn-ghost" data-act="open">Open a file…</button>
-                <button type="button" class="btn btn-ghost" data-act="lib">Your workflows…</button>
+
+            <div class="landing-chips">
+                <div class="landing-chips-lbl">First time here? Start from something that already exists.</div>
+                <div class="landing-chips-row">
+                    <button type="button" class="landing-chip accent" data-act="example">Open the example</button>
+                </div>
+                <div class="landing-chips-note" id="landingEmpty">Workflows you make are kept in this browser, and show up here.</div>
             </div>
-            <p id="landingNow" class="landing-now" hidden></p>
+
+            <!-- The workflows kept in this browser, and the one that is open
+                 (paintLanding, js/app.js). A binder is all of them in one file. -->
+            <div id="landingSaved" class="landing-section" hidden>
+                <div class="landing-section-head">
+                    <h2 class="landing-section-title">Your workflows</h2>
+                    <div class="landing-section-actions">
+                        <button type="button" class="landing-chip" id="binderExport" data-act="binder-export" title="Every kept workflow in one file, to keep safe or to move to another browser">⤓ Back up all</button>
+                    </div>
+                </div>
+                <div id="landingCards" class="landing-cards"></div>
+                <p class="landing-footnote">Kept workflows live in this browser only: this is not an account, and clearing the browser's data removes them. Back up for a copy that survives.</p>
+            </div>
         </div>
+    </div>
     </div>
 
     <!-- Workspace shell (carino-ui.css): the rail on the left, the board as the
@@ -125,6 +168,10 @@
                 <h2 class="rail-title">Add</h2>
                 <button id="libWrapRow" type="button" class="lib-wrap-row" data-act="lib-wrap" aria-expanded="true" aria-controls="libBody" hidden>
                     <span class="lw-caret" aria-hidden="true">▸</span><span class="lw-name">Elements</span><span class="lw-hint"></span>
+                </button>
+                <!-- The element last added, once more (addAgain, js/app.js). -->
+                <button id="addAgain" type="button" class="add-again" data-act="add-again" hidden>
+                    <span aria-hidden="true">＋</span><span class="aa-name"></span><kbd>A</kbd>
                 </button>
                 <div id="libBody" class="lib-body">
                     <div class="pf-inline">
@@ -245,10 +292,10 @@
                 <option value="map">One picture of the workflow, as it is on show</option>
                 <option value="screens">A picture of each screen</option>
                 <option value="storyboard">A storyboard of the marked way</option>
-                <option value="report">A report to read, send or print (.html)</option>
+                <option value="report">A report to read, send or print (PDF or HTML)</option>
                 <option value="sheet">A copy sheet of every text (.csv)</option>
                 <option value="cases">The test cases, whole workflow (.csv)</option>
-                <option value="link">A sealed link</option>
+                <option value="link">A link that carries the workflow</option>
             </select>
         </label>
         <label class="pf" id="exportPicOpts" hidden><span class="pf-l">Picture</span>
@@ -260,16 +307,18 @@
             </select>
         </label>
         <div id="exportLinkOpts" hidden>
-            <label class="pf"><span class="pf-l">Passphrase, 8 characters or more</span>
+            <label class="pf-check"><input type="checkbox" id="exportSeal" checked> <span>Lock it with a passphrase</span></label>
+            <label class="pf" id="exportPassRow"><span class="pf-l">Passphrase, 8 characters or more</span>
                 <input class="input" type="text" id="exportPass" autocomplete="off" spellcheck="false">
             </label>
             <label class="pf-check"><input type="checkbox" id="exportSimple"> <span>Open it in the Simple view</span></label>
-            <p class="pf-note">The workflow is encrypted here with this passphrase and put after the # of the link, which a browser never sends to a server. Whoever has both the link and the passphrase can open it.</p>
+            <p class="pf-note" id="exportLinkNote"></p>
         </div>
         <label class="pf-check" id="exportSourcesRow" hidden><input type="checkbox" id="exportNoSources"> <span>Leave out where the real work is kept (the sources)</span></label>
         <div id="exportLinkOut" hidden>
-            <textarea class="textarea" id="exportLink" rows="3" readonly aria-label="The sealed link"></textarea>
+            <textarea class="textarea" id="exportLink" rows="3" readonly aria-label="The link"></textarea>
             <button type="button" class="btn btn-ghost sm" data-act="export-copy">Copy the link</button>
+            <button type="button" class="btn btn-ghost sm" id="exportShare" data-act="export-share" hidden>Share…</button>
         </div>
         <p id="exportMsg" class="pf-note dlg-msg" role="status" aria-live="polite"></p>
         <div class="dlg-foot">
@@ -279,14 +328,31 @@
         </div>
     </dialog>
 
-    <dialog id="libDlg" class="dlg" aria-labelledby="libTitle">
-        <h2 id="libTitle" class="rail-title">Your workflows</h2>
-        <p class="pf-note">Kept in this browser, on this computer. Nothing here is uploaded; clearing the browser's data removes them, so save a copy of what matters.</p>
-        <div id="libList" class="lib-list"></div>
-        <p id="libKeptNote" class="pf-note" hidden>The workflow that is open is kept, and saves itself on every change.</p>
-        <div class="dlg-foot">
-            <button type="button" class="btn btn-primary sm" id="libKeep" data-act="lib-keep">Keep the workflow that is open</button>
-            <button type="button" class="btn btn-ghost sm" data-act="dlg-close" data-dlg="libDlg">Close</button>
+    <!-- The report, before it is saved: the fleet's report preview
+         (carino-ui.css 18b). The PDF | HTML switch is put above the file's
+         name by carino-pdf.js (openReport, js/report.js). -->
+    <dialog id="reportDlg" class="rpv-scrim" aria-labelledby="reportTitle">
+        <div class="rpv">
+            <aside class="rpv-side">
+                <div class="rpv-head"><h2 class="rpv-title" id="reportTitle">Report</h2><button type="button" class="modal-x rpv-x" data-act="report-close" aria-label="Close" title="Close">✕</button></div>
+                <p class="rpv-status" id="reportStatus" role="status" aria-live="polite"></p>
+                <div class="rpv-opts" id="reportOpts">
+                    <fieldset>
+                        <legend>Design</legend>
+                        <label><input type="radio" name="reportDesign" value="white" checked> <span>White</span></label>
+                        <label><input type="radio" name="reportDesign" value="black"> <span>Black</span></label>
+                        <label><input type="radio" name="reportDesign" value="blue"> <span>Blue</span></label>
+                        <label><input type="radio" name="reportDesign" value="plain"> <span>Plain, with no design</span></label>
+                    </fieldset>
+                    <label id="reportSourcesRow"><input type="checkbox" id="reportNoSources"> <span>Leave out where the real work is kept (the sources)</span></label>
+                </div>
+                <p class="rpv-name" id="reportName"></p>
+                <div class="rpv-actions">
+                    <button type="button" class="btn" id="reportPrint" data-act="report-print">Print</button>
+                    <button type="button" class="btn btn-primary" id="reportGo" data-act="report-download">Download PDF</button>
+                </div>
+            </aside>
+            <div class="rpv-stage" id="reportStage"><iframe class="rpv-frame" id="reportFrame" title="The report"></iframe></div>
         </div>
     </dialog>
 
@@ -325,6 +391,7 @@
     <script src="js/simple.js"></script>
     <script src="js/test.js"></script>
     <script src="js/export.js"></script>
+    <script src="js/report.js"></script>
     <script src="js/share.js"></script>
     <script src="js/library.js"></script>
     <script src="js/live.js"></script>
@@ -332,6 +399,7 @@
 <script src="carino-navbar.js" data-app="Flow" data-repo="Flow" data-license="AGPL-3.0" defer></script>
 <script src="carino-theme.js" data-mark="logo.svg" data-mark-color="logo-color.svg" defer></script>
 <script src="carino-ui.js" defer></script>
+<script src="carino-pdf.js" defer></script>
 <script src="carino-lang.js" defer></script>
 </body>
 </html>
