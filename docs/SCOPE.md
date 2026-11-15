@@ -72,6 +72,9 @@ format, and nothing leaving the page.
 | D51 | Presence (pointers, selections, names) is sealed, relayed and never kept. |
 | D52 | Opening another workflow while in a room leaves the room; it is never a change to the room's workflow. |
 | D53 | The page asks its own host once whether it is a Flow server. The Live menu appears only then. |
+| D54 | The elements to add are a grid of tiles, each a small drawing of the element made by the code that draws it on a screen, as in Topo's library. The grid folds to one row while an element, a link, a decision or several things are selected, so what is selected has the rail; with a screen or a block selected it stays open, since that is when it is used. A click on the row keeps it open. |
+| D55 | The board's background is light, dark, blueprint or circuit green (the blueprint's ruled paper in green). Only the board changes: a screen stays on white paper with everything on it drawn as it is, since it is a picture of the interface. What is written on the board around the screens (names, links, decisions) takes a light ink. A picture or a report is always on paper. The choice is kept in the browser, not in the workflow. |
+| D56 | A tile can be dragged from the grid onto a screen or a block, with nothing selected: the element lands where it is dropped, on the grid, kept inside. A click on a tile still adds to what is selected. After either, the grid is held open until something else is chosen, so the next element can follow. |
 | D15 | New, Open and the example are ordinary changes, so Undo brings back what was open and nothing asks "are you sure?". |
 
 ## Build order

@@ -139,6 +139,17 @@ const WORDS = {
     'Flow draws the workflow of a user interface: its screens at any size, the decisions between them and what takes the user from one to the next. It checks the workflow as you draw.': ['Flow dibuja el flujo de una interfaz: sus pantallas a cualquier tamaño, las decisiones entre ellas y lo que lleva al usuario de una a otra. Revisa el flujo mientras dibujas.', 'O Flow desenha o fluxo de uma interface: suas telas em qualquer tamanho, as decisões entre elas e o que leva o usuário de uma a outra. Ele verifica o fluxo enquanto você desenha.', 'Flow は画面のフローを描くツールです。あらゆるサイズの画面、その間の判断、画面から画面へ進むきっかけを描き、描くそばからチェックします。', 'Flow рисует сценарий интерфейса: экраны любого размера, решения между ними и то, что ведёт пользователя от одного к другому. Сценарий проверяется по мере рисования.'],
     'Runs in your browser. Nothing you add here is uploaded, and the addresses you save as sources are only links: Flow never opens them itself.': ['Funciona en tu navegador. Nada de lo que añadas se sube, y las direcciones que guardes como fuentes son solo enlaces: Flow nunca las abre por su cuenta.', 'Funciona no seu navegador. Nada do que você adicionar é enviado, e os endereços salvos como fontes são apenas links: o Flow nunca os abre sozinho.', 'ブラウザ内で動作します。追加した内容はアップロードされません。ソースとして保存したアドレスはリンクにすぎず、Flow が自分で開くことはありません。', 'Работает в браузере. Ничего из добавленного не загружается, а адреса источников — только ссылки: сам Flow их не открывает.'],
     'The file format is published:': ['El formato de archivo está publicado:', 'O formato de arquivo é público:', 'ファイル形式は公開されています：', 'Формат файла опубликован:'],
+    'Circuit background': ['Fondo de circuito', 'Fundo de circuito', '基板の背景', 'Фон-плата'],
+    'Drag an element onto a screen, or select a screen and click one.': ['Arrastra un elemento a una pantalla, o selecciona una pantalla y haz clic en uno.', 'Arraste um elemento para uma tela, ou selecione uma tela e clique em um.', '要素を画面にドラッグするか、画面を選んでから要素をクリックします。', 'Перетащите элемент на экран или выберите экран и нажмите на элемент.'],
+    'Drop it on a screen or a block.': ['Suéltalo sobre una pantalla o un bloque.', 'Solte sobre uma tela ou um bloco.', '画面またはブロックの上にドロップしてください。', 'Отпустите над экраном или блоком.'],
+    'Dark background': ['Fondo oscuro', 'Fundo escuro', '暗い背景', 'Тёмный фон'],
+    'Blueprint background': ['Fondo de plano', 'Fundo de planta', '青写真の背景', 'Фон-чертёж'],
+    'Light background': ['Fondo claro', 'Fundo claro', '明るい背景', 'Светлый фон'],
+    'Elements': ['Elementos', 'Elementos', '要素', 'Элементы'],
+    'Keep open': ['Mantener abierto', 'Manter aberto', '開いたままにする', 'Оставить открытым'],
+    'Fold': ['Plegar', 'Recolher', 'たたむ', 'Свернуть'],
+    'Show the elements and keep them open': ['Mostrar los elementos y mantenerlos abiertos', 'Mostrar os elementos e mantê-los abertos', '要素を表示して開いたままにする', 'Показать элементы и оставить открытыми'],
+    'Fold the elements while something is selected': ['Plegar los elementos mientras haya algo seleccionado', 'Recolher os elementos enquanto algo estiver selecionado', '選択中は要素をたたむ', 'Сворачивать элементы, пока что-то выбрано'],
     'Screens': ['Pantallas', 'Telas', '画面', 'Экраны'],
     'Decisions': ['Decisiones', 'Decisões', '判断', 'Решения'],
     'Links': ['Enlaces', 'Links', 'リンク', 'Связи'],
@@ -220,7 +231,7 @@ function translateChrome(root, selector) {
 // changing language twice still starts from it.
 // carinoNav is the fleet's navbar, which has its own words; Flow's controls
 // and its About text are moved inside it, and are walked on their own below.
-const SKIP = ['board', 'railProps', 'railWalk', 'railTest', 'railFindings', 'playPane', 'testPane', 'libList', 'addType', 'addTemplate', 'addPreset', 'flowLang', 'simpleBar', 'simpleBtn', 'carinoNav', 'TESTOUT'];
+const SKIP = ['board', 'railProps', 'railWalk', 'railTest', 'railFindings', 'playPane', 'testPane', 'libList', 'palette', 'libWrapRow', 'boardInkBtn', 'addTemplate', 'addPreset', 'flowLang', 'simpleBar', 'simpleBtn', 'carinoNav', 'TESTOUT'];
 const ATTRS = ['title', 'aria-label', 'placeholder'];
 const seen = new WeakMap();
 // A word Flow has, in the main list or in a language's own file.

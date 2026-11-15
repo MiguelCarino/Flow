@@ -52,6 +52,13 @@ const state = {
     live: null,
     liveServer: false,
     liveSure: false,
+    // libPinned: the Add grid is kept open while something is selected.
+    // boardInk: the board's background, '' (light), 'dark' or 'blue'. View only.
+    libPinned: false,
+    libHeld: false,
+    // dropOn: the screen or block a tile dragged from the grid is over.
+    dropOn: '',
+    boardInk: '',
     // cardId: the kept workflow (js/library.js) the open document is, or ''.
     // Not part of the document: where a workflow is kept is not an edit.
     cardId: '',

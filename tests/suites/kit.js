@@ -6,7 +6,7 @@ suite(async (ok, eq) => {
     eq('the kit has an entry for every type, and no other', Object.keys(ELEMENT_KIT).sort(), ELEMENT_TYPES.slice().sort());
     ok('a block is not added like the others', addElement('block') === '');
     eq('twenty-five elements', TYPES.length, 25);
-    eq('the Add list offers each one', Array.from(document.getElementById('addType').options).map((o) => o.value).sort(), TYPES.slice().sort());
+    eq('the Add list offers each one', Array.from(document.querySelectorAll('#palette [data-act="add-el"]')).map((b) => b.dataset.type).sort(), TYPES.slice().sort());
     ok('every element is in a group that is shown', TYPES.map((t) => ELEMENT_KIT[t]).every((k) => ELEMENT_GROUPS.some(([g]) => g === k.group)));
 
     const screen = addScreen('phone');

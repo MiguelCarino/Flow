@@ -63,6 +63,7 @@ the app join one room; the page prints PASS and FAIL lines.
 | `formatschema` | the published schema names every field and no other |
 | `privacy` | the content policy is never broken; nothing loads from another host |
 | `board` | what is drawn; selecting, moving, resizing, linking, keys |
+| `palette` | the grid of element tiles, dragging one onto a screen, its fold, and the board's backgrounds |
 | `kit` | every element type draws; the templates fit every size |
 | `pinning` | what an element holds on to when its screen changes size |
 | `multi` | picking several; moving, lining up, copying and removing together |

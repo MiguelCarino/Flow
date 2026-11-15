@@ -115,6 +115,8 @@ function drawBoard() {
     parts.push(selectionSvg(u));
     // The others in a live room: their pointers and what they have selected.
     parts.push(presenceSvg(u));
+    // Where a tile being dragged from the Add grid would land.
+    if (state.dropOn) { const h = recOf(doc, state.dropOn); if (h) { const b = boxOfStop(h); parts.push(`<rect class="drop-on" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${n1(Math.min(12, b.w / 20))}" fill="#16a34a" fill-opacity="0.08" stroke="#16a34a" stroke-width="3" vector-effect="non-scaling-stroke" pointer-events="none"/>`); } }
     if (state.linking) {
         const l = state.linking;
         parts.push(`<line x1="${n1(l.x0)}" y1="${n1(l.y0)}" x2="${n1(l.x)}" y2="${n1(l.y)}" stroke="${INK.sel}" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>`);
@@ -653,34 +655,96 @@ function renderFindings() {
     if (field) { if (typing !== null) field.value = typing; field.focus(); }
 }
 
-// The Add list, built once from the kit.
-function buildPalette() {
-    // One list, not a button each: twenty-five buttons pushed what is
-    // selected off the bottom of the rail.
-    $('addType').innerHTML = paletteOptions();
-    $('addType').value = 'text';
-    $('addTemplate').innerHTML = SCREEN_TEMPLATES.map((tpl) => `<option value="${tpl.key}">${esc(tr(tpl.name))}</option>`).join('');
+// ---- The Add grid ----
+// One tile per element: a small drawing of it, made by the same code that
+// draws it on a screen, and its name. Blocks follow, by their own names.
+function tileSvg(type, block) {
+    const kit = ELEMENT_KIT[type];
+    // A block's tile is the block itself, small: what is drawn in it.
+    if (block) return `<svg class="lib-pic" viewBox="-3 -3 ${block.w + 6} ${block.h + 6}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">${elementsOf(state.doc, block.id).map((c) => elementSvg(c, 1, true)).join('')}</svg>`;
+    // The element at a size that fits a tile, with a word or two in it.
+    const w = block ? block.w : Math.min(kit.w, type === 'topbar' || type === 'tabbar' ? 150 : 120), h = block ? block.h : Math.min(kit.h, 64);
+    const text = kit.lines ? kit.text.split('\n').slice(0, type === 'table' ? 3 : 2).join('\n') : type === 'image' ? '' : kit.text.split(' ').slice(0, 2).join(' ');
+    const el = readRec('elements', { id: 'el_tile', size: 'siz_tile', type, block: block ? block.id : '', w, h: kit.lines && type !== 'tabs' ? Math.max(h, 44) : h, text, fs: Math.min(kit.fs, 14), on: true, value: 60 });
+    return `<svg class="lib-pic" viewBox="-3 -3 ${el.w + 6} ${el.h + 6}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">${elementSvg(Object.assign(el, { x: 0, y: 0 }), 1, true)}</svg>`;
 }
-function paletteOptions() {
+function paletteHtml() {
     const blocks = state.doc.blocks;
-    return ELEMENT_GROUPS.map(([key, label]) => `<optgroup label="${esc(tr(label))}">`
-        + Object.entries(ELEMENT_KIT).filter(([, k]) => k.group === key).map(([type, k]) => `<option value="${type}">${esc(tr(k.label))}</option>`).join('') + '</optgroup>').join('')
-        + (blocks.length ? `<optgroup label="${esc(tr('Blocks'))}">` + blocks.map((b) => `<option value="block:${b.id}">${esc(b.name || tr('Block'))}</option>`).join('') + '</optgroup>' : '');
+    const tile = (value, label, pic) => `<button type="button" class="lib-tile" data-act="add-el" data-type="${esc(value)}" title="${esc(label)}" data-raw draggable="false">${pic}<span class="lib-name">${esc(label)}</span></button>`;
+    return ELEMENT_GROUPS.map(([key, label]) => `<div class="pf-head">${esc(tr(label))}</div><div class="lib-grid">`
+        + Object.entries(ELEMENT_KIT).filter(([, k]) => k.group === key).map(([type, k]) => tile(type, tr(k.label), tileSvg(type))).join('') + '</div>').join('')
+        + (blocks.length ? `<div class="pf-head">${esc(tr('Blocks'))}</div><div class="lib-grid">` + blocks.map((b) => tile('block:' + b.id, b.name || tr('Block'), tileSvg('block', b))).join('') + '</div>' : '');
 }
+function buildPalette() { renderPalette(); }
 
-// The Add buttons that need a screen to add to.
+// The grid follows the workflow's blocks and Flow's language, and is on
+// offer only when there is a screen or a block to add to.
 function renderPalette() {
-    // The list of blocks in the Add list follows the document.
-    const list = $('addType'), options = paletteOptions();
-    if (list.dataset.for !== options) { const was = list.value; list.innerHTML = options; list.dataset.for = options; list.value = was; if (!list.value) list.value = 'text'; }
+    // What the tiles show: the kit, the blocks and what is in them, the language.
+    const key = flowLocale() + '|' + state.doc.blocks.map((b) => b.id + b.name + b.w + b.h).join() + '|' + (state.doc.blocks.length ? state.seq : '');
+    const box = $('palette');
+    if (box.dataset.for !== key) { box.innerHTML = paletteHtml(); box.dataset.for = key; }
     // The templates' names are Flow's words, and follow its language.
     const tp = $('addTemplate'), tOpts = SCREEN_TEMPLATES.map((tpl) => `<option value="${tpl.key}">${esc(tr(tpl.name))}</option>`).join('');
     if (tp.dataset.for !== tOpts) { const was = tp.value; tp.innerHTML = tOpts; tp.dataset.for = tOpts; tp.value = was || 'blank'; }
-    const target = !!addTargetSize();
-    document.querySelectorAll('[data-act="add-el"], #addType').forEach((b) => { b.disabled = !target || state.readOnly; });
+    const target = addTargetSize(), inBlock = !!target && kindOfId(target.id) === 'blocks';
+    // A tile can always be dragged onto a screen. 'off': a click has nowhere
+    // to put it. 'no': it cannot go where a click would put it (a block
+    // inside a block). Read only: nothing is added at all.
+    box.querySelectorAll('[data-act="add-el"]').forEach((b) => {
+        const no = inBlock && b.dataset.type.startsWith('block:');
+        b.disabled = state.readOnly;
+        b.classList.toggle('off', !target || no);
+        b.classList.toggle('no', no);
+        b.setAttribute('aria-disabled', String(!target || no || state.readOnly));
+    });
     document.querySelectorAll('[data-act="add-screen"], [data-act="add-decision"], [data-act="add-block"]').forEach((b) => { b.disabled = state.readOnly; });
-    $('addHint').hidden = target;
+    $('addHint').hidden = !!target;
+    updateRailWrap();
 }
+// The Add grid folds to one row while what is selected is not something to
+// add to (an element, a link, a decision, several things), so its details
+// have the rail. With a screen or a block selected, or nothing, it stays
+// open: that is when it is used. A click on the row keeps it open; another
+// lets it fold again.
+function updateRailWrap() {
+    const rail = document.querySelector('.flow-rail'), row = $('libWrapRow'), sel = soleSelected();
+    const addsTo = !!sel && (sel.type === 'screens' || sel.type === 'blocks');
+    const folds = state.selection.size > 0 && !addsTo;
+    // Held open: something was just added from the grid (addFromGrid, js/app.js).
+    const wrapped = folds && !state.libPinned && !state.libHeld;
+    rail.classList.toggle('lib-wrapped', wrapped);
+    row.hidden = !folds;
+    row.setAttribute('aria-expanded', String(!wrapped));
+    row.querySelector('.lw-caret').textContent = wrapped ? '▸' : '▾';
+    row.querySelector('.lw-name').textContent = tr('Elements');
+    row.querySelector('.lw-hint').textContent = tr(wrapped ? 'Keep open' : 'Fold');
+    row.title = tr(wrapped ? 'Show the elements and keep them open' : 'Fold the elements while something is selected');
+}
+
+// ---- The board's background ----
+// Light, dark, blueprint (ruled blue paper) or circuit (the same ruled paper
+// in green), whatever the site's theme. Only the board changes: the
+// screens stay on white paper, drawn as they are, and what is written on the
+// board around them (names, links, decisions) takes a light ink. How this visitor likes to
+// look at it: kept in this browser, never in the workflow. A picture or a
+// report is always on paper, since it carries no stylesheet.
+const BOARD_INKS = ['', 'dark', 'blue', 'pcb'], INK_KEY = 'flow_board_ink';
+const INK_NEXT_TITLE = { '': 'Dark background', dark: 'Blueprint background', blue: 'Circuit background', pcb: 'Light background' };
+function setBoardInk(mode) {
+    const m = BOARD_INKS.includes(mode) ? mode : '';
+    state.boardInk = m;
+    const pane = $('boardPane'), btn = $('boardInkBtn');
+    pane.classList.toggle('map-ink', m !== '');
+    pane.classList.toggle('map-blue', m === 'blue');
+    pane.classList.toggle('map-pcb', m === 'pcb');
+    btn.setAttribute('aria-pressed', String(m !== ''));
+    btn.dataset.ink = m;
+    btn.title = tr(INK_NEXT_TITLE[m]); btn.setAttribute('aria-label', btn.title);
+    try { if (m) localStorage.setItem(INK_KEY, m); else localStorage.removeItem(INK_KEY); } catch (e) { /* no storage: it lasts for this visit */ }
+}
+const nextBoardInk = () => BOARD_INKS[(BOARD_INKS.indexOf(state.boardInk) + 1) % BOARD_INKS.length];
+
 // The size a new element goes on: the selected screen's shown one, or the
 // size of the selected element.
 function addTargetSize() {
@@ -702,6 +766,8 @@ function render(opts = {}) {
     if (!opts.typing) renderProps();
     renderLangBar();
     if (!opts.typing) renderWalk();
+    // The background button's hint is Flow's word, and follows its language.
+    $('boardInkBtn').title = tr(INK_NEXT_TITLE[state.boardInk || '']);
     renderSimple();
     renderPlay();
     if (!opts.typing) renderTestRail();

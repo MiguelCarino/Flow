@@ -93,6 +93,8 @@ function save(ops, opts = {}) {
 
 // ---- Selection ----
 function selectId(id) {
+    // Choosing something else lets the Add grid fold again (see addFromGrid).
+    state.libHeld = false;
     const rec = id ? recOf(state.doc, id) : null;
     if (!rec) { setSelection([]); render(); return; }
     // An element on a size that is not on show: show that size.
@@ -148,8 +150,11 @@ function addDecision() {
     selectId(id); showStop(id);
     return id;
 }
-function addElement(type) {
-    const size = addTargetSize();
+// drop: where a tile was let go on the board { owner, x, y } (the size or
+// block it landed on, and the point inside it). Without one, the element
+// goes on what is selected, under what is already there.
+function addElement(type, drop) {
+    const size = drop ? drop.owner : addTargetSize();
     // 'block:<id>' places that block. It goes on a screen, never inside a block.
     const block = type.startsWith('block:') ? recOf(state.doc, type.slice(6)) : null;
     if (block) type = 'block';
@@ -160,7 +165,12 @@ function addElement(type) {
     const bar = type === 'topbar' || type === 'tabbar';
     const w = bar ? size.w : block ? block.w : Math.min(kit.w, Math.max(GRID, snap(size.w - 64)));
     const id = nextId('elements');
-    if (!change({ op: 'add', kind: 'elements', rec: { id, size: size.id, type, block: block ? block.id : '', name: block ? block.name : '', x: bar ? 0 : block ? Math.max(0, Math.min(32, size.w - block.w)) : 32, y: type === 'tabbar' ? sizeHeight(size) - kit.h : type === 'topbar' ? 0 : snap(others.length ? low + 16 : 32), w, h: kit.h, text: kit.text, fs: kit.fs, pinH: bar ? 'both' : 'left', pinV: type === 'tabbar' ? 'bottom' : 'top', z: topZ(others) } })) return '';
+    // Dropped: centred on where it was let go, on the grid, kept inside. A bar
+    // goes to its edge wherever it is dropped.
+    const within = (v, len, room) => Math.max(0, Math.min(snap(v - len / 2), Math.floor((room - len) / GRID) * GRID));
+    const x = bar ? 0 : drop ? within(drop.x, w, size.w) : block ? Math.max(0, Math.min(32, size.w - block.w)) : 32;
+    const y = type === 'tabbar' ? sizeHeight(size) - kit.h : type === 'topbar' ? 0 : drop ? within(drop.y, kit.h, sizeHeight(size)) : snap(others.length ? low + 16 : 32);
+    if (!change({ op: 'add', kind: 'elements', rec: { id, size: size.id, type, block: block ? block.id : '', name: block ? block.name : '', x, y, w, h: kit.h, text: kit.text, fs: kit.fs, pinH: bar ? 'both' : 'left', pinV: type === 'tabbar' ? 'bottom' : 'top', z: topZ(others) } })) return '';
     selectId(id);
     return id;
 }
@@ -251,6 +261,69 @@ function setStart(id, on) {
         if (on) state.doc.screens.forEach((s) => { if (s.start && s.id !== id) setF(s.id, 'start', false); });
         setF(id, 'start', on);
     });
+}
+
+// ---- From the Add grid ----
+// An element added from the grid, by a click or by a drop. It is selected,
+// which would fold the grid; the grid is held open instead until something
+// else is chosen, so the next element can follow at once.
+function addFromGrid(type, drop) {
+    if (!drop && !addTargetSize()) { say('Drag an element onto a screen, or select a screen and click one.', true); return ''; }
+    const id = addElement(type, drop);
+    if (id) { state.libHeld = true; updateRailWrap(); }
+    return id;
+}
+// Where the pointer is over the board: the screen or block under it, what
+// elements are drawn on there, and the point inside it. null over anything
+// else, and in the flow view, where screens are cards.
+function dropTarget(ev) {
+    if (state.view === 'flow' || state.readOnly) return null;
+    const over = document.elementFromPoint(ev.clientX, ev.clientY);
+    const hit = over && over.closest ? over.closest('#board [data-id]') : null;
+    const holder = hit ? screenOfId(hit.dataset.id) : null;
+    if (!holder) return null;
+    const p = boardPoint(ev);
+    return { holder, owner: drawnOn(holder), x: p.x - holder.x, y: p.y - holder.y };
+}
+// A tile picked up from the grid follows the pointer as a small copy of its
+// drawing; the screen under it lights up; letting go there adds the element
+// where it was dropped. A press that does not move is the tile's click.
+let _tileDrag = null, _skipTileClick = false;
+function onTileDown(ev) {
+    const tile = ev.target.closest ? ev.target.closest('.lib-tile') : null;
+    if (!tile || ev.button !== 0 || state.readOnly) return;
+    _tileDrag = { type: tile.dataset.type, tile, sx: ev.clientX, sy: ev.clientY, on: false, ghost: null };
+}
+function onTileMove(ev) {
+    const d = _tileDrag;
+    if (!d) return;
+    if (!d.on) {
+        if (Math.abs(ev.clientX - d.sx) + Math.abs(ev.clientY - d.sy) < 6) return;
+        d.on = true;
+        d.ghost = document.createElement('div');
+        d.ghost.className = 'lib-ghost';
+        d.ghost.appendChild(d.tile.querySelector('.lib-pic').cloneNode(true));
+        document.body.appendChild(d.ghost);
+        document.body.classList.add('tile-dragging');
+    }
+    d.ghost.style.left = ev.clientX + 'px'; d.ghost.style.top = ev.clientY + 'px';
+    const drop = dropTarget(ev), on = drop && !(d.type.startsWith('block:') && kindOfId(drop.holder.id) === 'blocks') ? drop.holder.id : '';
+    d.ghost.classList.toggle('ok', !!on);
+    if (on !== state.dropOn) { state.dropOn = on; drawSoon(); }
+}
+function onTileUp(ev) {
+    const d = _tileDrag;
+    _tileDrag = null;
+    if (!d || !d.on) return;
+    d.ghost.remove();
+    document.body.classList.remove('tile-dragging');
+    // Let go over its own tile, the browser would also send a click.
+    _skipTileClick = true; setTimeout(() => { _skipTileClick = false; }, 0);
+    const drop = ev.type === 'pointercancel' ? null : dropTarget(ev), was = state.dropOn;
+    state.dropOn = '';
+    if (drop && was) { addFromGrid(d.type, drop); return; }
+    drawBoard();
+    if (ev.type !== 'pointercancel') say('Drop it on a screen or a block.', true);
 }
 
 // ---- Replacing the whole document ----
@@ -846,6 +919,7 @@ function onAct(ev) {
     const b = ev.target.closest('[data-act]');
     if (!b || b.disabled || b.closest('#board')) return;
     const act = b.dataset.act, id = b.dataset.id || '';
+    if (act === 'add-el' && _skipTileClick) return;
     if (act === 'new') { openDoc(newDoc(''), false); say('A new workflow. Undo brings back what was here.'); }
     else if (act === 'open') $('filePick').click();
     else if (act === 'save') saveFile();
@@ -854,7 +928,9 @@ function onAct(ev) {
     else if (act === 'redo') redo();
     else if (act === 'add-screen') addScreen($('addPreset').value, $('addTemplate').value);
     else if (act === 'add-decision') addDecision();
-    else if (act === 'add-el') addElement($('addType').value);
+    else if (act === 'add-el') { if (!b.classList.contains('no')) addFromGrid(b.dataset.type); }
+    else if (act === 'lib-wrap') { state.libPinned = !state.libPinned; updateRailWrap(); }
+    else if (act === 'board-ink') setBoardInk(nextBoardInk());
     else if (act === 'add-size') addSize(id, $('sizePreset').value);
     else if (act === 'add-link') addLink(id, $('linkTo').value);
     else if (act === 'add-source') addSource();
@@ -969,6 +1045,10 @@ function boot() {
     svg.addEventListener('pointercancel', onBoardUp);
     svg.addEventListener('wheel', onBoardWheel, { passive: false });
     document.addEventListener('click', onAct);
+    $('palette').addEventListener('pointerdown', onTileDown);
+    document.addEventListener('pointermove', onTileMove);
+    document.addEventListener('pointerup', onTileUp);
+    document.addEventListener('pointercancel', onTileUp);
     document.addEventListener('input', onFieldInput);
     document.addEventListener('change', onFieldChange);
     document.addEventListener('keydown', onKey);
@@ -992,6 +1072,7 @@ function boot() {
     window.addEventListener('resize', drawBoard);
 
     buildPalette();
+    try { setBoardInk(localStorage.getItem(INK_KEY) || ''); } catch (e) { setBoardInk(''); }
     // The kept workflow this one is, if it was one before the reload.
     try { state.cardId = (!readOnly && doc && localStorage.getItem(LIB_ID_KEY)) || ''; } catch (e) { state.cardId = ''; }
     if (state.cardId) libGet(state.cardId).then((card) => { if (!card) setCard(''); });

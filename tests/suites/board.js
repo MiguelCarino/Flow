@@ -5,7 +5,7 @@ suite(async (ok, eq) => {
     const text = () => JSON.stringify(serializeDoc(state.doc));
 
     ok('an empty board says so', !document.getElementById('boardEmpty').hidden);
-    ok('elements wait for a screen', document.querySelector('[data-act="add-el"]').disabled);
+    ok('a click on an element tile waits for a screen', document.querySelector('[data-act="add-el"]').classList.contains('off'));
     loadExample();
     ok('and stops saying so', document.getElementById('boardEmpty').hidden);
     eq('every stop and link is drawn', [all('.screen').length, all('.decision').length, all('.link').length], [3, 1, 4]);
@@ -30,7 +30,7 @@ suite(async (ok, eq) => {
     pointer('pointerdown', frame(cart), frame(cart)); pointer('pointerup', board, frame(cart));
     eq('a press selects', soleSelected(), { type: 'screens', id: cart.id });
     ok('the rail shows it', document.querySelector('#railProps [data-f="name"]').value === 'Cart');
-    ok('and elements can be added', !document.querySelector('[data-act="add-el"]').disabled);
+    ok('and elements can be added', !document.querySelector('[data-act="add-el"]').classList.contains('off'));
     const pay = state.doc.elements.find((e) => e.name === 'Pay');
     const payEl = q(`.el[data-id="${pay.id}"]`);
     pointer('pointerdown', payEl, payEl); pointer('pointerup', board, payEl);
@@ -97,8 +97,7 @@ suite(async (ok, eq) => {
 
     // ---- adding from the rail ----
     selectId(cart.id);
-    document.getElementById('addType').value = 'button';
-    document.querySelector('[data-act="add-el"]').click();
+    document.querySelector('#palette [data-act="add-el"][data-type="button"]').click();
     const added = recOf(state.doc, soleSelected().id);
     eq('a new element goes under the lowest one, inside the screen', [added.type, added.size, added.y > 448, added.x + added.w <= 390], ['button', sizesOf(state.doc, cart.id)[0].id, true, true]);
     document.querySelector('[data-act="add-screen"]').click();

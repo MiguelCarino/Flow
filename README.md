@@ -18,6 +18,9 @@ here. See [docs/SCOPE.md](docs/SCOPE.md) for what comes next.
 - **Links that say why.** A link records what the user does and under which
   condition. It can start at one element, such as a button.
 - **Decisions.** A question the system answers, with one branch per answer.
+- **A board in light, dark, blueprint or circuit green,** with the screens
+  always on white paper, and a grid of element tiles you drag onto a
+  screen. The grid folds away while an element is selected.
 - **Twenty-five elements,** from text and buttons to lists, tables, tab bars
   and alerts, and six screen templates to start from.
 - **Pinning.** Each element holds on to an edge, both edges, the centre or

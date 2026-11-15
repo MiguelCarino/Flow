@@ -83,29 +83,36 @@
          pane. At 900px and below carino-ui.js turns the rail into a drawer. -->
     <div class="ws flow-ws">
         <aside class="ws-rail flow-rail">
-            <section class="rail-sec">
+            <!-- What can be added. The grid of elements folds to one row while an
+                 element, a link or several things are selected, so what is
+                 selected has the rail; a click on the row keeps it open
+                 (updateRailWrap, js/ui.js). -->
+            <section class="rail-sec" id="railAdd">
                 <h2 class="rail-title">Add</h2>
-                <div class="pf-inline">
-                    <select class="select" id="addPreset" aria-label="Size of the new screen">
-                        <option value="phone">Phone 390×844</option>
-                        <option value="tablet">Tablet 820×1180</option>
-                        <option value="laptop">Laptop 1366×768</option>
-                        <option value="desktop">Desktop 1920×1080</option>
-                        <option value="watch">Watch 198×242</option>
-                        <option value="tv">TV 1920×1080</option>
-                    </select>
-                    <button type="button" class="btn btn-primary sm" data-act="add-screen">+ Screen</button>
+                <button id="libWrapRow" type="button" class="lib-wrap-row" data-act="lib-wrap" aria-expanded="true" aria-controls="libBody" hidden>
+                    <span class="lw-caret" aria-hidden="true">▸</span><span class="lw-name">Elements</span><span class="lw-hint"></span>
+                </button>
+                <div id="libBody" class="lib-body">
+                    <div class="pf-inline">
+                        <select class="select" id="addPreset" aria-label="Size of the new screen">
+                            <option value="phone">Phone 390×844</option>
+                            <option value="tablet">Tablet 820×1180</option>
+                            <option value="laptop">Laptop 1366×768</option>
+                            <option value="desktop">Desktop 1920×1080</option>
+                            <option value="watch">Watch 198×242</option>
+                            <option value="tv">TV 1920×1080</option>
+                        </select>
+                        <button type="button" class="btn btn-primary sm" data-act="add-screen">+ Screen</button>
+                    </div>
+                    <label class="pf"><span class="pf-l">Starting from</span><select class="select" id="addTemplate" aria-label="Template of the new screen"></select></label>
+                    <div class="pf-cols two">
+                        <button type="button" class="btn btn-ghost sm" data-act="add-decision">◇ Decision</button>
+                        <button type="button" class="btn btn-ghost sm" data-act="add-block" title="A group of elements drawn once and placed on many screens">▣ Block</button>
+                    </div>
+                    <p id="addHint" class="pf-note">Drag an element onto a screen, or select a screen and click one.</p>
+                    <!-- One tile per element, each a small drawing of it (buildPalette, js/ui.js). -->
+                    <div id="palette" class="lib-groups"></div>
                 </div>
-                <label class="pf"><span class="pf-l">Starting from</span><select class="select" id="addTemplate" aria-label="Template of the new screen"></select></label>
-                <div class="pf-cols two">
-                    <button type="button" class="btn btn-ghost sm" data-act="add-decision">◇ Decision</button>
-                    <button type="button" class="btn btn-ghost sm" data-act="add-block" title="A group of elements drawn once and placed on many screens">▣ Block</button>
-                </div>
-                <div class="pf-inline">
-                    <select class="select" id="addType" aria-label="Element to add" disabled></select>
-                    <button type="button" class="btn btn-ghost sm" data-act="add-el" disabled>+ Element</button>
-                </div>
-                <p id="addHint" class="pf-note">Select a screen to add elements to it.</p>
             </section>
 
             <section class="rail-sec" id="railProps"></section>
@@ -166,6 +173,8 @@
                 <span id="zoomLabel" class="zoom-label">50%</span>
                 <button type="button" class="btn btn-ghost sm" data-act="zoom-in" aria-label="Zoom in">+</button>
                 <button type="button" class="btn btn-ghost sm" data-act="fit">Fit</button>
+                <!-- The board's background: light, dark or blueprint (setBoardInk, js/ui.js). -->
+                <button type="button" id="boardInkBtn" class="btn btn-ghost sm ink-btn" data-act="board-ink" aria-pressed="false" title="Dark background" aria-label="Dark background">◐</button>
                 <button type="button" id="liveTag" class="live-tag" data-act="live" hidden></button>
                 <span id="keptTag" class="kept-tag" title="This workflow is kept in this browser and saves itself on every change" hidden>Kept</span>
             </div>

@@ -31,10 +31,9 @@ suite(async (ok, eq) => {
 
     // ---- placing it elsewhere ----
     selectId(receipt.id);
-    const list = document.getElementById('addType');
-    ok('the Add list offers the block by name', Array.from(list.options).some((o) => o.value === 'block:' + block.id && o.textContent === 'Block 1'));
-    list.value = 'block:' + block.id;
-    document.querySelector('[data-act="add-el"]').click();
+    const tile = (type) => document.querySelector(`#palette [data-act="add-el"][data-type="${type}"]`);
+    ok('the Add grid has a tile for the block, by name, with a drawing of it', !!tile('block:' + block.id) && tile('block:' + block.id).querySelector('.lib-name').textContent === 'Block 1' && tile('block:' + block.id).querySelectorAll('.lib-pic rect').length > 1);
+    tile('block:' + block.id).click();
     const second = recOf(state.doc, soleSelected().id);
     eq('a placing goes on the selected screen at the block\'s size', [second.type, second.block, second.w, second.h, second.size], ['block', block.id, 326, 288, sizesOf(state.doc, receipt.id)[0].id]);
     ok('and the block counts it', /placed 2 times/.test(q(`.block[data-id="${block.id}"] .stop-name`).textContent));
@@ -50,13 +49,12 @@ suite(async (ok, eq) => {
 
     // ---- editing inside the block ----
     selectId(block.id);
-    ok('with the block selected, elements can be added to it', !document.querySelector('[data-act="add-el"]').disabled);
-    list.value = 'text';
-    document.querySelector('[data-act="add-el"]').click();
+    ok('with the block selected, elements can be added to it', !document.querySelector('[data-act="add-el"]').classList.contains('off'));
+    tile('text').click();
     const added = recOf(state.doc, soleSelected().id);
     eq('a new element goes inside the block', [added.size, added.type], [block.id, 'text']);
     ok('it has no arrow to link from', !q('.sel-layer [data-h="link"]') && !!q('.sel-layer [data-h="resize"]'));
-    list.value = 'block:' + block.id;
+    ok('with a block selected, its own tile is not on offer', (() => { selectId(block.id); const off = tile('block:' + block.id).classList.contains('no'); selectId(added.id); return off; })());
     eq('a block cannot be placed inside a block', addElement('block:' + block.id), '');
     removeId(added.id);
     selectId(block.id);
@@ -79,7 +77,7 @@ suite(async (ok, eq) => {
     undo();
     const empty = addBlock();
     eq('an empty block is reported', keys(), ['block-empty']);
-    selectId(empty); list.value = 'button'; document.querySelector('[data-act="add-el"]').click();
+    selectId(empty); tile('button').click();
     eq('then a block that is placed nowhere', keys(), ['block-unused']);
     removeId(empty);
     eq('removing it settles it', [keys(), state.doc.blocks.length, state.doc.elements.filter((e) => e.size === empty).length], [[], 1, 0]);
