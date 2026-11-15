@@ -1,0 +1,914 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flow.carino.systems/schema/flow-v1.json",
+  "title": "Flow workflow file, document version 1",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "doc"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "flowdoc"
+    },
+    "version": {
+      "const": 1,
+      "description": "The envelope's version."
+    },
+    "name": {
+      "type": "string",
+      "description": "A copy of the workflow's name, so a file can be listed without reading the document."
+    },
+    "doc": {
+      "$ref": "#/$defs/doc"
+    },
+    "part": {
+      "type": "boolean",
+      "description": "True when the document is some screens of a larger workflow, made to be worked on apart and merged back by id."
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}_[a-z0-9]{2,40}$",
+      "description": "A record's id: the prefix of its list (scr, siz, el, dec, lnk, src, blk, sty, lng, wrd, acc, pin, bas, run, stp), an underscore, then letters and digits. Opaque; never reused."
+    },
+    "ref": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}_[a-z0-9]{2,40}$",
+      "description": "The id of another record in this document."
+    },
+    "screen": {
+      "type": "object",
+      "description": "A stop in the workflow that the user sees. Its drawings are in sizes.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "What the screen is called."
+        },
+        "x": {
+          "type": "integer",
+          "minimum": -1000000,
+          "maximum": 1000000,
+          "description": "Left edge on the board.",
+          "default": 0
+        },
+        "y": {
+          "type": "integer",
+          "minimum": -1000000,
+          "maximum": 1000000,
+          "description": "Top edge on the board.",
+          "default": 0
+        },
+        "start": {
+          "type": "boolean",
+          "default": false,
+          "description": "The workflow starts here."
+        },
+        "end": {
+          "type": "boolean",
+          "default": false,
+          "description": "The workflow can end here."
+        },
+        "stub": {
+          "type": "boolean",
+          "default": false,
+          "description": "In a part of a workflow: this stop was left out, and is here only so links to it have somewhere to point. A reader merging the part back ignores it."
+        },
+        "status": {
+          "enum": [
+            "drawn",
+            "designed",
+            "built"
+          ],
+          "default": "drawn",
+          "description": "How far the real screen has got."
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "The screen's live address, as a path on a base address."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Free text."
+        },
+        "source": {
+          "$ref": "#/$defs/ref",
+          "description": "The source where the real thing is kept, or absent."
+        },
+        "at": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "The place inside that source: a frame, a file path."
+        }
+      },
+      "additionalProperties": false
+    },
+    "size": {
+      "type": "object",
+      "description": "One drawing of a screen at one width and height.",
+      "required": [
+        "id",
+        "screen"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "screen": {
+          "$ref": "#/$defs/ref",
+          "description": "The screen this is a drawing of."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "What the size is called, for example Phone."
+        },
+        "w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "description": "Width in CSS pixels.",
+          "default": 390
+        },
+        "h": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "description": "Height of what shows at once, in CSS pixels.",
+          "default": 844
+        },
+        "contentH": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "description": "Full height of the content when it scrolls; 0 when it does not.",
+          "default": 0
+        },
+        "input": {
+          "enum": [
+            "touch",
+            "pointer",
+            "remote"
+          ],
+          "default": "touch",
+          "description": "How the screen is used."
+        },
+        "distance": {
+          "enum": [
+            "near",
+            "far"
+          ],
+          "default": "near",
+          "description": "How far away it is seen from."
+        },
+        "z": {
+          "type": "number",
+          "default": 0,
+          "description": "Order among the screen's sizes, lowest first."
+        }
+      },
+      "additionalProperties": false
+    },
+    "element": {
+      "type": "object",
+      "description": "A control or a piece of content drawn on a size, or inside a block.",
+      "required": [
+        "id",
+        "size"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "size": {
+          "$ref": "#/$defs/ref",
+          "description": "What this is drawn on: a size, or a block when it is part of that block's own drawing."
+        },
+        "type": {
+          "enum": [
+            "box",
+            "text",
+            "heading",
+            "link",
+            "image",
+            "icon",
+            "avatar",
+            "divider",
+            "button",
+            "input",
+            "textarea",
+            "select",
+            "checkbox",
+            "radio",
+            "toggle",
+            "slider",
+            "card",
+            "list",
+            "table",
+            "topbar",
+            "tabbar",
+            "tabs",
+            "chip",
+            "progress",
+            "alert",
+            "block"
+          ],
+          "default": "box",
+          "description": "What kind of element it is. 'block' is one placing of a block."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "What it is, for lists and reports."
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "The text it shows; for an image, what the image shows. For a list, tabs, a tab bar or a table: one item or row per line, and a table's cells split by |. Written in the document's own language (doc.lang)."
+        },
+        "x": {
+          "type": "integer",
+          "minimum": -1000000,
+          "maximum": 1000000,
+          "description": "Left edge inside the size.",
+          "default": 0
+        },
+        "y": {
+          "type": "integer",
+          "minimum": -1000000,
+          "maximum": 1000000,
+          "description": "Top edge inside the size.",
+          "default": 0
+        },
+        "w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "description": "Width.",
+          "default": 96
+        },
+        "h": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "description": "Height.",
+          "default": 48
+        },
+        "fs": {
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 400,
+          "description": "Text size in CSS pixels.",
+          "default": 16
+        },
+        "on": {
+          "type": "boolean",
+          "default": false,
+          "description": "A checkbox, radio or toggle shown as on."
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 50,
+          "description": "A slider or progress bar shown at this share, 0 to 100."
+        },
+        "pinH": {
+          "enum": [
+            "left",
+            "right",
+            "both",
+            "center",
+            "scale"
+          ],
+          "default": "left",
+          "description": "What it keeps hold of, across, when its screen changes size: an edge, both edges (it stretches), the centre, or its share of the width."
+        },
+        "pinV": {
+          "enum": [
+            "top",
+            "bottom",
+            "both",
+            "center",
+            "scale"
+          ],
+          "default": "top",
+          "description": "The same, down."
+        },
+        "block": {
+          "$ref": "#/$defs/ref",
+          "description": "For type 'block': the block placed here. Its elements are drawn inside this element's box, each put by its pins."
+        },
+        "fill": {
+          "$ref": "#/$defs/ref",
+          "description": "A colour style for its surface, in place of the usual colour."
+        },
+        "ink": {
+          "$ref": "#/$defs/ref",
+          "description": "A colour style for its text."
+        },
+        "textStyle": {
+          "$ref": "#/$defs/ref",
+          "description": "A text style. When set, it gives the text size and weight, and fs is not used."
+        },
+        "key": {
+          "type": "string",
+          "maxLength": 120,
+          "pattern": "^\\S*$",
+          "description": "The name this text has in the interface's dictionaries (cart.pay). With a key, the element's text in another language is that language's word for the key."
+        },
+        "z": {
+          "type": "number",
+          "default": 0,
+          "description": "Drawing order on its size, lowest first."
+        },
+        "source": {
+          "$ref": "#/$defs/ref",
+          "description": "The source where the real thing is kept, or absent."
+        },
+        "at": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "The place inside that source: a frame, a file path."
+        }
+      },
+      "additionalProperties": false
+    },
+    "decision": {
+      "type": "object",
+      "description": "A stop that is a question, with one branch (a link) per answer.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "The question."
+        },
+        "x": {
+          "type": "integer",
+          "minimum": -1000000,
+          "maximum": 1000000,
+          "description": "Left edge on the board.",
+          "default": 0
+        },
+        "y": {
+          "type": "integer",
+          "minimum": -1000000,
+          "maximum": 1000000,
+          "description": "Top edge on the board.",
+          "default": 0
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Free text."
+        },
+        "stub": {
+          "type": "boolean",
+          "default": false,
+          "description": "In a part of a workflow: this stop was left out, and is here only so links to it have somewhere to point. A reader merging the part back ignores it."
+        }
+      },
+      "additionalProperties": false
+    },
+    "link": {
+      "type": "object",
+      "description": "A way from one stop to another, and what takes the user there.",
+      "required": [
+        "id",
+        "from",
+        "to"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "from": {
+          "$ref": "#/$defs/ref",
+          "description": "The screen or decision it leaves."
+        },
+        "fromEl": {
+          "$ref": "#/$defs/ref",
+          "description": "The element that starts it, when one does."
+        },
+        "to": {
+          "$ref": "#/$defs/ref",
+          "description": "The screen or decision it arrives at."
+        },
+        "kind": {
+          "enum": [
+            "action",
+            "system",
+            "auto",
+            "back"
+          ],
+          "default": "action",
+          "description": "What takes the user there: something they do, something the system decides, something that happens by itself, or going back."
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "What the user does, or what happens."
+        },
+        "cond": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "The condition; from a decision, the answer."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Free text."
+        },
+        "source": {
+          "$ref": "#/$defs/ref",
+          "description": "The source where the real thing is kept, or absent."
+        },
+        "at": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "The place inside that source: a frame, a file path."
+        }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "description": "An outside address where the real work is kept. Only ever a link; Flow does not fetch it.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "vector",
+            "code",
+            "board",
+            "other"
+          ],
+          "default": "vector",
+          "description": "What is kept there."
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "What the source is called."
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2000,
+          "pattern": "^https?://",
+          "description": "The address. http or https only."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Free text."
+        }
+      },
+      "additionalProperties": false
+    },
+    "doc": {
+      "type": "object",
+      "description": "The document. Flat lists of records that refer to each other by id. A field that is absent holds its default.",
+      "required": [
+        "v"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "description": "The document's format version."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "The workflow's name."
+        },
+        "lang": {
+          "type": "string",
+          "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+          "default": "en",
+          "description": "The language the elements' own text is written in."
+        },
+        "screens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/screen"
+          }
+        },
+        "sizes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/size"
+          }
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/element"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decision"
+          }
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/link"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          }
+        },
+        "styles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/style"
+          }
+        },
+        "langs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lang"
+          }
+        },
+        "words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/word"
+          }
+        },
+        "accepts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/accept"
+          }
+        },
+        "pins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pin"
+          }
+        },
+        "bases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/base"
+          }
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/run"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      }
+    },
+    "block": {
+      "type": "object",
+      "description": "A group of elements drawn once and placed on many screens. Its own elements have this block's id as their size. A placing is an element of type 'block'. A placing cannot sit inside a block.",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "What the block is called."
+        },
+        "x": {
+          "type": "integer",
+          "minimum": -1000000,
+          "maximum": 1000000,
+          "default": 0,
+          "description": "Left edge of its own drawing on the board."
+        },
+        "y": {
+          "type": "integer",
+          "minimum": -1000000,
+          "maximum": 1000000,
+          "default": 0,
+          "description": "Top edge of its own drawing on the board."
+        },
+        "w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "default": 240,
+          "description": "Width its elements are laid out for."
+        },
+        "h": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "default": 120,
+          "description": "Height its elements are laid out for."
+        }
+      }
+    },
+    "style": {
+      "type": "object",
+      "description": "A named colour or text size that elements take their look from.",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "color",
+            "text"
+          ],
+          "default": "color",
+          "description": "A colour, or a text size and weight."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "What the style is called."
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$",
+          "default": "#0f172a",
+          "description": "For a colour: six hex digits, lower case."
+        },
+        "fs": {
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 400,
+          "default": 16,
+          "description": "For text: the size in CSS pixels."
+        },
+        "weight": {
+          "enum": [
+            400,
+            500,
+            600,
+            700
+          ],
+          "default": 400,
+          "description": "For text: the weight."
+        }
+      }
+    },
+    "lang": {
+      "type": "object",
+      "description": "A language the drawn interface is written in, besides the document's own. Its texts are the words that point at it.",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+          "default": "xx",
+          "description": "The language code, as dictionaries are named: es, pt-BR."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "What the language is called."
+        }
+      }
+    },
+    "word": {
+      "type": "object",
+      "description": "One text of one language's dictionary. One per language and key. A key no element uses is kept: the dictionary is the whole interface's.",
+      "required": [
+        "id",
+        "lang",
+        "key"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "lang": {
+          "$ref": "#/$defs/ref",
+          "description": "The language this text is in."
+        },
+        "key": {
+          "type": "string",
+          "maxLength": 120,
+          "pattern": "^\\S*$",
+          "description": "The dictionary key."
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "What the key says in this language."
+        }
+      }
+    },
+    "accept": {
+      "type": "object",
+      "description": "A finding someone accepted as it is. It is no longer counted. One per finding.",
+      "required": [
+        "id",
+        "finding"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "finding": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "The finding's key: the check, a colon, and the id of the record it is about (dead-end:scr_...). Empty after the colon for a finding about the whole document."
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Why it is fine as it is."
+        }
+      }
+    },
+    "pin": {
+      "type": "object",
+      "description": "A finding someone marked to come back to. One per finding.",
+      "required": [
+        "id",
+        "finding"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "finding": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "The finding's key: the check, a colon, and the id of the record it is about (dead-end:scr_...). Empty after the colon for a finding about the whole document."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Free text."
+        }
+      }
+    },
+    "base": {
+      "type": "object",
+      "description": "A base address the screens' live addresses hang off: staging, production. A screen's live address is this address and the screen's path, joined. Only ever a link; Flow does not fetch it.",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "What it is called."
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2000,
+          "pattern": "^https?://",
+          "description": "The address. http or https only."
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "description": "One test of one way through the workflow against the real thing. Its screens are its steps.",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "What the run is called."
+        },
+        "base": {
+          "$ref": "#/$defs/ref",
+          "description": "The base address it was run against, when there was one."
+        },
+        "at": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8640000000000000,
+          "default": 0,
+          "description": "When it was started, in milliseconds since 1970."
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "description": "One screen of a run: what was expected there, and whether it was so.",
+      "required": [
+        "id",
+        "run"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "run": {
+          "$ref": "#/$defs/ref",
+          "description": "The run this is a step of."
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000,
+          "default": 0,
+          "description": "Its place in the run, from 0."
+        },
+        "stop": {
+          "$ref": "#/$defs/ref",
+          "description": "The screen it checks. Absent once that screen is gone."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "What the screen was called when the run started."
+        },
+        "via": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "What led to it from the step before, as it was when the run started."
+        },
+        "result": {
+          "enum": [
+            "",
+            "pass",
+            "fail",
+            "skip"
+          ],
+          "default": "",
+          "description": "How it went; empty while it is still to do."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "What the tester saw."
+        }
+      }
+    }
+  }
+}
