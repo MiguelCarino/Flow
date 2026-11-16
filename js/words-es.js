@@ -557,5 +557,20 @@
     "Brought in {n} from the binder.": "Se trajo {n} de la carpeta.",
     "{n} were here already.": "{n} ya estaban aquí.",
     "Every workflow of that binder is here already.": "Todos los flujos de esa carpeta ya están aquí.",
-    "That binder has no workflow in it.": "Esa carpeta no tiene ningún flujo."
+    "That binder has no workflow in it.": "Esa carpeta no tiene ningún flujo.",
+    "Rename": "Renombrar",
+    "Merge": "Combinar",
+    "Merge into another workflow…": "Combinar con otro flujo…",
+    "Name of the workflow": "Nombre del flujo",
+    "Enter keeps the name, Esc leaves it as it was.": "Enter guarda el nombre, Esc lo deja como estaba.",
+    "Merge \"{name}\" into which workflow?": "¿Con qué flujo se combina \"{name}\"?",
+    "Merged \"{a}\" into \"{b}\": {n}.": "Se combinó \"{a}\" con \"{b}\": {n}.",
+    "1 change": "1 cambio",
+    "{n} changes": "{n} cambios",
+    "Nothing in \"{a}\" differs from \"{b}\".": "Nada de \"{a}\" difiere de \"{b}\".",
+    "Duplicated as \"{name}\".": "Duplicado como \"{name}\".",
+    "What both have is merged, the one merged in winning; what only it has is added below. It stays kept as it is.": "Lo que ambos tienen se combina, y gana el que se incorpora; lo que solo él tiene se añade debajo. Sigue guardado tal como está.",
+    "Choose another workflow to merge into.": "Elige otro flujo con el que combinar.",
+    "That workflow is no longer kept here.": "Ese flujo ya no está guardado aquí.",
+    "A workflow made by a newer Flow cannot be merged by this one.": "Un flujo hecho con un Flow más nuevo no se puede combinar con este."
 };

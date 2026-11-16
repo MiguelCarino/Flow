@@ -144,3 +144,98 @@ async function saveCardFile(id) {
     saveBlob(new Blob([JSON.stringify(card.doc, null, 2) + '\n'], { type: 'application/json' }), safeName(card.name) + '.flow.json');
     return true;
 }
+
+// ---- A kept workflow's tools, on its card ----
+// Rename, duplicate and merge act on the card where it is kept; on the
+// workflow that is open they go through the editor, as ordinary changes.
+
+// "Shop" -> "Shop 2"; "Shop 2" -> "Shop 3": the first no card has.
+function nextCardName(name, cards) {
+    const taken = new Set(cards.map((c) => String(c.name || '').trim().toLowerCase()));
+    const text = String(name || '').trim() || 'Untitled', m = /^(.*\S)\s+(\d+)$/.exec(text), stem = m ? m[1] : text;
+    let k = m ? Number(m[2]) + 1 : 2;
+    while (taken.has(`${stem} ${k}`.toLowerCase())) k++;
+    return `${stem} ${k}`;
+}
+// A card's envelope under another name.
+function envelopeNamed(env, name) {
+    const out = cloneData(env);
+    out.name = name;
+    if (out.doc && typeof out.doc === 'object') out.doc.name = name;
+    return out;
+}
+async function renameCard(id, name) {
+    const text = String(name || '').trim().slice(0, 120);
+    if (!text) return false;
+    if (id === state.cardId) {
+        if (state.readOnly) return false;
+        if (text !== state.doc.name) change({ op: 'set', kind: 'doc', id: '', field: 'name', value: text });
+        await flushCard();
+        return true;
+    }
+    const card = await libGet(id);
+    if (!card) return false;
+    if (card.name === text) return true;
+    return libPut(Object.assign({}, card, { name: text, doc: envelopeNamed(card.doc, text), updated: Date.now() }));
+}
+// A second card of the same workflow, under the next free name. Its records
+// keep their ids, so a copy worked on can be merged back into the original.
+async function duplicateCard(id) {
+    if (id === state.cardId) await flushCard();
+    const card = await libGet(id);
+    if (!card) return '';
+    const name = nextCardName(card.name, await libList()), now = Date.now();
+    const copy = { id: 'card_' + now.toString(36) + idRandom(), name, doc: envelopeNamed(card.doc, name), created: now, updated: now };
+    return (await libPut(copy)) ? copy : '';
+}
+
+// One workflow merged into another. Records the two share (a copy made with
+// Duplicate, a part sent out and back) are merged by id, the source's values
+// winning, as Merge a part back in does. What only the source has is added;
+// its stops are set below everything the target has drawn, so two different
+// workflows end up one under the other and not on top of each other.
+// Pure: -> { doc, changes }.
+function mergeWorkflows(target, source) {
+    const src = normalizeDoc(serializeDoc(source));
+    const have = (id) => !!recOf(target, id);
+    const bottom = (doc) => {
+        const tallest = (s) => Math.max(0, ...doc.sizes.filter((z) => z.screen === s.id).map((z) => sizeHeight(z)));
+        return Math.max(...doc.screens.map((s) => s.y + tallest(s)), ...doc.decisions.map((d) => d.y + DECISION_H), ...doc.blocks.map((b) => b.y + b.h), -Infinity);
+    };
+    const fresh = src.screens.concat(src.decisions, src.blocks).filter((r) => !have(r.id));
+    const floor = bottom(target);
+    if (fresh.length && Number.isFinite(floor)) {
+        const dy = Math.ceil((floor + 400 - Math.min(...fresh.map((r) => r.y))) / GRID) * GRID;
+        if (dy > 0) fresh.forEach((r) => { r.y += dy; });
+    }
+    // The target keeps its own name and language.
+    const ops = mergeOps(target, src);
+    const out = normalizeDoc(serializeDoc(target));
+    ops.forEach((op) => applyOp(out, op));
+    return { doc: normalizeDoc(serializeDoc(out)), changes: ops.length };
+}
+// Card `fromId` merged into card `intoId`. The source card stays as it is.
+// -> { changes, into } or { error }.
+async function mergeCardInto(fromId, intoId) {
+    if (!fromId || !intoId || fromId === intoId) return { error: 'Choose another workflow to merge into.' };
+    await flushCard();
+    const from = await libGet(fromId), into = await libGet(intoId);
+    if (!from || !into) return { error: 'That workflow is no longer kept here.' };
+    const a = openFileText(JSON.stringify(from.doc)), b = openFileText(JSON.stringify(into.doc));
+    if (a.error || b.error) return { error: a.error || b.error };
+    if (a.readOnly || b.readOnly) return { error: 'A workflow made by a newer Flow cannot be merged by this one.' };
+    // Into the workflow that is open: through the editor, so Undo takes it back.
+    if (intoId === state.cardId) {
+        if (state.readOnly) return { error: 'This workflow is open to read only.' };
+        const merged = mergeWorkflows(state.doc, a.doc);
+        const shifted = normalizeDoc(serializeDoc(a.doc));
+        // The same placing mergeWorkflows worked out, applied as the editor's own change.
+        shifted.screens.concat(shifted.decisions, shifted.blocks).forEach((r) => { const there = recOf(merged.doc, r.id); if (there && !recOf(state.doc, r.id)) r.y = there.y; });
+        const changes = mergeDoc(shifted);
+        await flushCard();
+        return { changes, into: into.name };
+    }
+    const merged = mergeWorkflows(b.doc, a.doc);
+    if (merged.changes) await libPut(Object.assign({}, into, { doc: fileEnvelope(merged.doc), updated: Date.now() }));
+    return { changes: merged.changes, into: into.name };
+}

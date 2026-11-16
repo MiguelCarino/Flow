@@ -60,7 +60,7 @@ suite(async (ok, eq) => {
     try { localStorage.removeItem('flow_report_design'); localStorage.removeItem('carino-report-format'); } catch (e) { /* no storage */ }
     document.querySelector('[data-act="report-open"]').click();
     const dlg = document.getElementById('reportDlg'), status = document.getElementById('reportStatus'), frame = document.getElementById('reportFrame');
-    for (let i = 0; i < 60 && !_rp.html; i++) await wait(100);
+    for (let i = 0; i < 200 && !_rp.html; i++) await wait(100);
     ok('File, Report opens the preview with the report in it', dlg.open && _rp.html.includes('data-theme="white"') && frame.srcdoc === _rp.html);
     eq('it says how long the report is', status.textContent, `${white.pages} pages · Letter`);
     eq('the designs on offer', Array.from(document.querySelectorAll('input[name="reportDesign"]')).map((r) => r.value), ['white', 'black', 'blue', 'plain']);

@@ -456,3 +456,14 @@ body.on-landing .flow-actions { display: none !important; }
     .landing-new-row { flex-direction: column; }
     .landing-drop { padding-inline: 18px; }
 }
+
+/* ---- A card's tools: five of them, so they sit along its foot ---- */
+.landing-card-tools { top: auto; bottom: 8px; padding-left: 6px; background: var(--bg-card); border-radius: 4px; }
+.landing-card-name { padding-right: 0; }
+.landing-card.draft .landing-card-tools { top: 8px; bottom: auto; }
+.landing-card.draft .landing-card-name { padding-right: 56px; }
+.landing-card.renaming .landing-card-open { cursor: default; }
+.landing-card-rename { width: 100%; margin: -3px 0 1px; padding: 4px 8px; font-size: 0.79rem; font-weight: 600; }
+.merge-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; max-height: 46vh; overflow-y: auto; }
+.merge-list .merge-into { justify-content: flex-start; text-align: left; text-transform: none; letter-spacing: 0; }
+@media (pointer: coarse) { .landing-card-tools { background: none; padding-left: 0; } }

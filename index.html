@@ -356,6 +356,17 @@
         </div>
     </dialog>
 
+    <!-- A kept workflow merged into another (openCardMerge, js/app.js). -->
+    <dialog id="mergeDlg" class="dlg" aria-labelledby="mergeTitle">
+        <h2 id="mergeTitle" class="rail-title">Merge</h2>
+        <p id="mergeAsk" class="pf-note"></p>
+        <div id="mergeList" class="merge-list"></div>
+        <p class="pf-note">What both have is merged, the one merged in winning; what only it has is added below. It stays kept as it is.</p>
+        <div class="dlg-foot">
+            <button type="button" class="btn btn-ghost sm" data-act="dlg-close" data-dlg="mergeDlg">Cancel</button>
+        </div>
+    </dialog>
+
     <dialog id="liveDlg" class="dlg" aria-labelledby="liveTitle">
         <h2 id="liveTitle" class="rail-title">Live</h2>
         <div id="liveBody" class="dlg-body"></div>

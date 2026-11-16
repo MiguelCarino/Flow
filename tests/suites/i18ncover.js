@@ -65,6 +65,8 @@ suite(async (ok, eq) => {
         await makeShareLink('all', 'short').catch((e) => say(e.message, true));
         await unsealText('e~AAAA', 'x').catch((e) => say(e.message, true));
         await keepWorkflow(); showLanding(true); paintLanding(await libList()); state.libSure = state.cardId; paintLanding(await libList()); state.libSure = '';
+        state.libRename = state.cardId; paintLanding(await libList()); state.libRename = ''; const kept = state.cardId, twin = await duplicateCard(kept); say(tr('Duplicated as "{name}".', { name: twin.name }));
+        paintLanding(await libList()); await openCardMerge(kept); await runCardMerge(twin.id); await openCardMerge(twin.id); await runCardMerge(kept); for (const e of [await mergeCardInto(kept, kept), await mergeCardInto(kept, 'card_none')]) say(e.error, true);
         { const real = window.saveBlob; window.saveBlob = () => {}; await exportBinder().catch(() => {}); window.saveBlob = real; } await openAnyFile(JSON.stringify(await binderEnvelope())); await openAnyFile('{"kind":"flowbinder","workflows":[]}');
         for (const card of await libList()) await libDelete(card.id);
         paintLanding([]); await reportDesigned(exportStops('all'), { theme: 'white' }); showLanding(false);

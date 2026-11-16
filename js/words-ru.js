@@ -557,5 +557,20 @@
     "Brought in {n} from the binder.": "Из подшивки добавлено: {n}.",
     "{n} were here already.": "Уже были здесь: {n}.",
     "Every workflow of that binder is here already.": "Все процессы из этой подшивки уже здесь.",
-    "That binder has no workflow in it.": "В этой подшивке нет процессов."
+    "That binder has no workflow in it.": "В этой подшивке нет процессов.",
+    "Rename": "Переименовать",
+    "Merge": "Объединить",
+    "Merge into another workflow…": "Объединить с другим процессом…",
+    "Name of the workflow": "Название процесса",
+    "Enter keeps the name, Esc leaves it as it was.": "Enter сохраняет название, Esc оставляет прежнее.",
+    "Merge \"{name}\" into which workflow?": "С каким процессом объединить «{name}»?",
+    "Merged \"{a}\" into \"{b}\": {n}.": "«{a}» объединён с «{b}»: {n}.",
+    "1 change": "1 изменение",
+    "{n} changes": "изменений: {n}",
+    "Nothing in \"{a}\" differs from \"{b}\".": "В «{a}» нет отличий от «{b}».",
+    "Duplicated as \"{name}\".": "Дублирован как «{name}».",
+    "What both have is merged, the one merged in winning; what only it has is added below. It stays kept as it is.": "Общее объединяется, причём побеждает вливаемый; то, что есть только в нём, добавляется ниже. Сам он остаётся сохранённым как есть.",
+    "Choose another workflow to merge into.": "Выберите другой процесс для объединения.",
+    "That workflow is no longer kept here.": "Этот процесс здесь больше не хранится.",
+    "A workflow made by a newer Flow cannot be merged by this one.": "Процесс, созданный более новой версией Flow, нельзя объединить в этой."
 };

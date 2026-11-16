@@ -236,7 +236,7 @@ function translateChrome(root, selector) {
 // changing language twice still starts from it.
 // carinoNav is the fleet's navbar, which has its own words; Flow's controls
 // and its About text are moved inside it, and are walked on their own below.
-const SKIP = ['reportStatus', 'reportName', 'reportGo', 'reportFormat', 'reportFrame', 'landingCards', 'addAgain', 'exportLinkNote', 'board', 'railProps', 'railWalk', 'railTest', 'railFindings', 'playPane', 'testPane', 'libList', 'palette', 'libWrapRow', 'boardInkBtn', 'addTemplate', 'addPreset', 'flowLang', 'simpleBar', 'simpleBtn', 'carinoNav', 'TESTOUT'];
+const SKIP = ['reportStatus', 'reportName', 'reportGo', 'reportFormat', 'reportFrame', 'landingCards', 'mergeAsk', 'mergeList', 'addAgain', 'exportLinkNote', 'board', 'railProps', 'railWalk', 'railTest', 'railFindings', 'playPane', 'testPane', 'libList', 'palette', 'libWrapRow', 'boardInkBtn', 'addTemplate', 'addPreset', 'flowLang', 'simpleBar', 'simpleBtn', 'carinoNav', 'TESTOUT'];
 const ATTRS = ['title', 'aria-label', 'placeholder'];
 const seen = new WeakMap();
 // A word Flow has, in the main list or in a language's own file.

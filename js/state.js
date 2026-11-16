@@ -70,6 +70,9 @@ const state = {
     // Not part of the document: where a workflow is kept is not an edit.
     cardId: '',
     libSure: '',
+    // libRename: the card whose name is being typed on the start page.
+    // libMerge: the card being merged into another, while its dialog is open.
+    libRename: '', libMerge: '',
     // seq: goes up by one on every saved change. Anything that caches a view
     // of the document keys on it.
     seq: 0,

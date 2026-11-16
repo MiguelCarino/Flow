@@ -75,7 +75,7 @@ the app join one room; the page prints PASS and FAIL lines.
 | `play` | clicking through the workflow; it changes nothing |
 | `export` | parts that merge back, pictures, storyboard, zip, copy sheet, report |
 | `share` | sealed and plain links: making, opening, arriving by one (real clock) |
-| `library` | keeping workflows in the browser; they save themselves; the cards on the start page; the binder, out and back in (real clock) |
+| `library` | keeping workflows in the browser; they save themselves; the cards on the start page and their tools (rename, duplicate, merge); the binder, out and back in (real clock) |
 | `testing` | live addresses, test cases, runs with pass and fail |
 | `i18n` | Flow's five languages; apart from the workflow's; whole for a client |
 | `i18ncover` | every state of the editor in every language: no word without a translation (real clock) |

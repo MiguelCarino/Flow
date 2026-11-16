@@ -448,15 +448,54 @@ function paintLanding(cards) {
             + `<span class="landing-card-stats">${esc(stats(doc))}</span><span class="landing-card-badges">${badge('open', 'good')}${badge('not kept', 'warn')}</span><span class="landing-card-when">${esc(tr('Only in this tab until it is kept.'))}</span></button>`
             + (state.readOnly || state.live ? '' : `<div class="landing-card-tools"><button type="button" class="landing-tool wide" data-act="lib-keep" title="${esc(tr('Keep it in this browser; it saves itself from then on'))}">${esc(tr('Keep'))}</button></div>`) + '</div>';
     }
+    const tool = (act, id, glyph, label, name, cls = '') => `<button type="button" class="landing-tool${cls}" data-act="${act}" data-id="${esc(id)}" title="${esc(tr(label))}" aria-label="${esc(tr(label) + ' — ' + name)}">${glyph}</button>`;
     h += cards.map((c) => {
         const on = c.id === state.cardId, d = on ? doc : c.doc && c.doc.doc, sure = state.libSure === c.id, name = c.name || tr('Untitled');
+        // Its name being typed: the card is a field until Enter, Esc or a press elsewhere.
+        if (state.libRename === c.id) {
+            return `<div class="landing-card renaming${on ? ' on' : ''}" data-card="${esc(c.id)}"><div class="landing-card-open"><input class="input landing-card-rename" type="text" maxlength="120" value="${esc(on ? doc.name || name : name)}" data-rename="${esc(c.id)}" aria-label="${esc(tr('Name of the workflow'))}">`
+                + `<span class="landing-card-stats">${esc(stats(d))}</span><span class="landing-card-when">${esc(tr('Enter keeps the name, Esc leaves it as it was.'))}</span></div></div>`;
+        }
         return `<div class="landing-card${on ? ' on' : ''}${sure ? ' sure' : ''}" data-card="${esc(c.id)}"><button type="button" class="landing-card-open" data-act="lib-open" data-id="${esc(c.id)}">`
             + `<span class="landing-card-name">${esc(on ? doc.name || name : name)}</span><span class="landing-card-stats">${esc(stats(d))}</span>`
             + `<span class="landing-card-badges">${on ? badge('open', 'good') : ''}</span><span class="landing-card-when">${esc(tr('Changed {x}.', { x: new Date(c.updated).toLocaleString() }))}</span></button>`
-            + `<div class="landing-card-tools">${sure ? '' : `<button type="button" class="landing-tool" data-act="lib-save" data-id="${esc(c.id)}" title="${esc(tr('Save a copy as a file'))}" aria-label="${esc(tr('Save a copy as a file') + ' — ' + name)}">⤓</button>`}`
+            + `<div class="landing-card-tools">${sure ? '' : (on && state.readOnly ? '' : tool('lib-rename', c.id, '✎', 'Rename', name)) + tool('lib-duplicate', c.id, '⧉', 'Duplicate', name)
+                + (cards.length > 1 ? tool('lib-merge', c.id, '⇄', 'Merge into another workflow…', name) : '') + tool('lib-save', c.id, '⤓', 'Save a copy as a file', name)}`
             + `<button type="button" class="landing-tool${sure ? ' wide danger' : ''}" data-act="lib-del" data-id="${esc(c.id)}" title="${esc(tr(sure ? 'Delete for good' : 'Delete'))}" aria-label="${esc(tr(sure ? 'Delete for good' : 'Delete') + ' — ' + name)}">${sure ? esc(tr('Delete for good')) : '✕'}</button></div></div>`;
     }).join('');
     $('landingCards').innerHTML = h;
+    const field = $('landingCards').querySelector('.landing-card-rename');
+    if (field && document.activeElement !== field) { field.focus(); field.select(); }
+}
+// The name typed on a card: kept, or left as it was.
+async function endCardRename(keep) {
+    const field = $('landingCards').querySelector('.landing-card-rename'), id = state.libRename;
+    if (!id) return false;
+    state.libRename = '';
+    const done = keep && field ? await renameCard(id, field.value) : false;
+    render();
+    return done;
+}
+// Which workflow a card is merged into: every other one, a press each.
+async function openCardMerge(id) {
+    const cards = await libList(), from = cards.find((c) => c.id === id);
+    if (!from || cards.length < 2) return false;
+    state.libMerge = id;
+    $('mergeAsk').textContent = tr('Merge "{name}" into which workflow?', { name: from.name || tr('Untitled') });
+    $('mergeList').innerHTML = cards.filter((c) => c.id !== id).map((c) => `<button type="button" class="btn btn-ghost merge-into" data-act="merge-into" data-id="${esc(c.id)}">${esc(c.name || tr('Untitled'))}${c.id === state.cardId ? ` <span class="size-on">${esc(tr('open'))}</span>` : ''}</button>`).join('');
+    openDlg('mergeDlg');
+    return true;
+}
+async function runCardMerge(intoId) {
+    const fromId = state.libMerge;
+    state.libMerge = '';
+    closeDlg('mergeDlg');
+    const from = await libGet(fromId), res = await mergeCardInto(fromId, intoId);
+    if (res.error) say(res.error, true);
+    else say(res.changes ? tr('Merged "{a}" into "{b}": {n}.', { a: (from && from.name) || tr('Untitled'), b: res.into, n: tn(res.changes, '1 change', '{n} changes') })
+        : tr('Nothing in "{a}" differs from "{b}".', { a: (from && from.name) || tr('Untitled'), b: res.into }));
+    render();
+    return res;
 }
 // A new workflow from the start page: named, kept in this browser, opened.
 async function landingNew() {
@@ -1109,6 +1148,10 @@ function onAct(ev) {
     else if (act === 'pass-go') runUnseal();
     else if (act === 'home') goHome();
     else if (act === 'binder-export') exportBinder();
+    else if (act === 'lib-rename') { state.libSure = ''; state.libRename = id; renderLanding(); }
+    else if (act === 'lib-duplicate') duplicateCard(id).then((copy) => { if (copy) say(tr('Duplicated as "{name}".', { name: copy.name })); else say('This browser has no room to keep it. Save a copy as a file instead.', true); render(); });
+    else if (act === 'lib-merge') openCardMerge(id);
+    else if (act === 'merge-into') runCardMerge(id);
     else if (act === 'lib-save') saveCardFile(id).then((ok) => { if (ok) say('Saved a copy as a file.'); });
     else if (act === 'lib-keep') keepWorkflow().then((kept) => { if (kept) say('Kept. It saves itself in this browser from now on.'); render(); });
     else if (act === 'lib-open') (id === state.cardId ? Promise.resolve(true) : openCard(id)).then((ok) => { if (ok) { state.libSure = ''; say('Opened from Your workflows.'); enterEditor(); } });
@@ -1235,6 +1278,13 @@ function boot() {
         const file = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
         if (file) file.text().then(openAnyFile);
     });
+    // A card's name being typed: Enter keeps it, Esc gives up, a press elsewhere keeps it.
+    $('landingCards').addEventListener('keydown', (ev) => {
+        if (!ev.target.classList || !ev.target.classList.contains('landing-card-rename')) return;
+        if (ev.key === 'Enter') { ev.preventDefault(); endCardRename(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); endCardRename(false); }
+    });
+    $('landingCards').addEventListener('focusout', (ev) => { if (ev.target.classList && ev.target.classList.contains('landing-card-rename') && state.libRename) endCardRename(true); });
     $('landingName').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); landingNew(); } });
     $('passInput').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); runUnseal(); } });
     // Whether a folded list is open is remembered across redraws.

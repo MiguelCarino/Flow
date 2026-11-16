@@ -49,6 +49,70 @@ suite(async (ok, eq) => {
     del().click(); await wait(300);
     eq('then deletes that card only', [(await libList()).map((c) => c.id), rows().length], [[id], 1]);
 
+    // ---- a card's tools: rename, duplicate, merge ----
+    const cardOfId = (cid) => document.querySelector(`#landingCards [data-card="${cid}"]`);
+    eq('a card has its tools: rename, duplicate, save, delete (merge needs a second workflow)', Array.from(cardOfId(id).querySelectorAll('.landing-tool')).map((b) => b.dataset.act), ['lib-rename', 'lib-duplicate', 'lib-save', 'lib-del']);
+    // duplicate
+    cardOfId(id).querySelector('[data-act="lib-duplicate"]').click(); await wait(400);
+    let all = await libList();
+    const twin = all.find((c) => c.id !== id);
+    eq('Duplicate makes a second card under the next free name, with the same workflow', [all.length, twin.name, twin.doc.doc.name, twin.doc.doc.screens.length, JSON.stringify(twin.doc.doc.screens.map((x) => x.id)) === JSON.stringify(serializeDoc(state.doc).screens.map((x) => x.id))], [2, 'Shop checkout 2', 'Shop checkout 2', 3, true]);
+    ok('the open workflow is still the original', state.cardId === id && state.doc.name === 'Shop checkout' && rows().length === 2);
+    eq('with two kept, a card offers Merge too', Array.from(cardOfId(twin.id).querySelectorAll('.landing-tool')).map((b) => b.dataset.act), ['lib-rename', 'lib-duplicate', 'lib-merge', 'lib-save', 'lib-del']);
+    // rename a card that is not open
+    cardOfId(twin.id).querySelector('[data-act="lib-rename"]').click(); await wait(200);
+    let field = document.querySelector('#landingCards .landing-card-rename');
+    ok('Rename turns the card\'s name into a field, with the name in it', !!field && field.value === 'Shop checkout 2' && document.activeElement === field);
+    field.value = 'Shop, the copy';
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await wait(400);
+    eq('Enter keeps the new name, on the card and in the workflow', [(await libGet(twin.id)).name, (await libGet(twin.id)).doc.doc.name, /Shop, the copy/.test(cardOfId(twin.id).textContent), !!document.querySelector('.landing-card-rename')], ['Shop, the copy', 'Shop, the copy', true, false]);
+    cardOfId(twin.id).querySelector('[data-act="lib-rename"]').click(); await wait(200);
+    field = document.querySelector('#landingCards .landing-card-rename');
+    field.value = 'Thrown away';
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await wait(300);
+    eq('Esc leaves the name as it was', (await libGet(twin.id)).name, 'Shop, the copy');
+    cardOfId(twin.id).querySelector('[data-act="lib-rename"]').click(); await wait(200);
+    field = document.querySelector('#landingCards .landing-card-rename');
+    field.value = '   ';
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await wait(300);
+    eq('a blank name changes nothing', (await libGet(twin.id)).name, 'Shop, the copy');
+    // rename the one that is open: an ordinary change
+    const undoWas = canUndo();
+    eq('renaming the open workflow renames it in the editor too', [await renameCard(id, 'Shop, live'), state.doc.name, (await libGet(id)).name], [true, 'Shop, live', 'Shop, live']);
+    undo(); await flushCard();
+    eq('and Undo takes that back', [state.doc.name, (await libGet(id)).name], ['Shop checkout', 'Shop checkout']);
+
+    // merge: a copy worked on, back into the original
+    const copyDoc = openFileText(JSON.stringify((await libGet(twin.id)).doc)).doc;
+    const changed = copyDoc.screens.find((x) => !x.start), wasCalled = changed.name;
+    changed.name = 'Renamed in the copy';
+    copyDoc.screens.push(readRec('screens', { id: 'scr_extra', name: 'Help', x: 0, y: 0 }));
+    await libPut(Object.assign({}, await libGet(twin.id), { doc: fileEnvelope(normalizeDoc(serializeDoc(copyDoc))) }));
+    render(); await wait(300);
+    cardOfId(twin.id).querySelector('[data-act="lib-merge"]').click(); await wait(300);
+    const mdlg = document.getElementById('mergeDlg');
+    ok('Merge asks which workflow to merge into, offering the others', mdlg.open && /Merge "Shop, the copy" into which workflow\?/.test(document.getElementById('mergeAsk').textContent) && Array.from(document.querySelectorAll('#mergeList [data-act="merge-into"]')).map((b) => b.dataset.id).join() === id);
+    const lowest = Math.max(...state.doc.screens.map((x) => x.y));
+    document.querySelector(`#mergeList [data-id="${id}"]`).click(); await wait(600);
+    ok('merged into the open workflow: what both have takes the copy\'s values', !mdlg.open && recOf(state.doc, changed.id).name === 'Renamed in the copy');
+    ok('what only the copy had is added, below what was drawn', !!recOf(state.doc, 'scr_extra') && recOf(state.doc, 'scr_extra').y > lowest, String(recOf(state.doc, 'scr_extra') && recOf(state.doc, 'scr_extra').y));
+    ok('the target keeps its own name, and the source card stays', state.doc.name === 'Shop checkout' && !!(await libGet(twin.id)) && (await libList()).length === 2);
+    ok('the card of the open workflow has it too', (await libGet(id)).doc.doc.screens.some((x) => x.name === 'Renamed in the copy'));
+    undo(); await flushCard();
+    ok('into the open workflow it is one undo step', recOf(state.doc, changed.id).name === wasCalled && !recOf(state.doc, 'scr_extra'));
+    // into a card that is not open
+    const res = await mergeCardInto(id, twin.id);
+    const after2 = (await libGet(twin.id)).doc.doc;
+    eq('merged into a workflow that is not open, its card is rewritten', [res.changes > 0, after2.screens.find((x) => x.id === changed.id).name === wasCalled, after2.name], [true, true, 'Shop, the copy']);
+    eq('merging the same thing again changes nothing', (await mergeCardInto(id, twin.id)).changes, 0);
+    eq('a workflow is not merged into itself', (await mergeCardInto(id, id)).error, 'Choose another workflow to merge into.');
+    // two different workflows end up one under the other
+    const a = newDoc('A'); a.screens.push(readRec('screens', { id: 'scr_alpha', name: 'Alpha', x: 0, y: 0 })); a.sizes.push(readRec('sizes', { id: 'siz_alpha', screen: 'scr_alpha', name: 'Phone', w: 390, h: 844 }));
+    const b = newDoc('B'); b.screens.push(readRec('screens', { id: 'scr_beta1', name: 'Beta', x: 0, y: 0 }));
+    const both = mergeWorkflows(normalizeDoc(serializeDoc(a)), normalizeDoc(serializeDoc(b)));
+    ok('two different workflows merged keep every screen, the second set below the first', both.doc.screens.length === 2 && both.doc.name === 'A' && both.doc.screens.find((x) => x.id === 'scr_beta1').y >= 844 + 400 && both.doc.screens.find((x) => x.id === 'scr_alpha').y === 0, JSON.stringify(both.doc.screens.map((x) => [x.id, x.y])));
+    await libDelete(twin.id); render(); await wait(300);
+
     // ---- the binder: every kept workflow in one file ----
     const saves = [], realSave = window.saveBlob;
     window.saveBlob = (blob, name) => { saves.push({ blob, name }); };

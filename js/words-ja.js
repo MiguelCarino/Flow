@@ -557,5 +557,20 @@
     "Brought in {n} from the binder.": "バインダーから {n} を取り込みました。",
     "{n} were here already.": "{n} 件はすでにありました。",
     "Every workflow of that binder is here already.": "そのバインダーのワークフローはすべて、すでにここにあります。",
-    "That binder has no workflow in it.": "そのバインダーにはワークフローがありません。"
+    "That binder has no workflow in it.": "そのバインダーにはワークフローがありません。",
+    "Rename": "名前を変更",
+    "Merge": "マージ",
+    "Merge into another workflow…": "別のワークフローにマージ…",
+    "Name of the workflow": "ワークフローの名前",
+    "Enter keeps the name, Esc leaves it as it was.": "Enter で名前を確定、Esc で元のままにします。",
+    "Merge \"{name}\" into which workflow?": "「{name}」をどのワークフローにマージしますか？",
+    "Merged \"{a}\" into \"{b}\": {n}.": "「{a}」を「{b}」にマージしました：{n}。",
+    "1 change": "変更 1 件",
+    "{n} changes": "変更 {n} 件",
+    "Nothing in \"{a}\" differs from \"{b}\".": "「{a}」と「{b}」に違いはありません。",
+    "Duplicated as \"{name}\".": "「{name}」として複製しました。",
+    "What both have is merged, the one merged in winning; what only it has is added below. It stays kept as it is.": "両方にあるものはマージされ、取り込む側が優先されます。取り込む側だけにあるものは下に追加されます。取り込む側はそのまま保存されます。",
+    "Choose another workflow to merge into.": "マージ先に別のワークフローを選んでください。",
+    "That workflow is no longer kept here.": "そのワークフローはもうここに保存されていません。",
+    "A workflow made by a newer Flow cannot be merged by this one.": "新しい Flow で作られたワークフローは、この版ではマージできません。"
 };
