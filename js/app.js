@@ -1020,10 +1020,12 @@ function resizeSize(id, field, value) {
 
 function onBoardWheel(ev) {
     ev.preventDefault();
-    const r = boardRect();
-    if (ev.ctrlKey || ev.metaKey) { zoomAt(Math.exp(-ev.deltaY * 0.01), ev.clientX - r.left, ev.clientY - r.top); return; }
-    state.camera.x -= ev.deltaX; state.camera.y -= ev.deltaY;
-    drawBoard();
+    // The wheel zooms about the pointer, as in Topo. A trackpad pinch comes as a
+    // Ctrl-wheel with small steps, so it turns faster; a line-based wheel
+    // (Firefox) counts each line as 16 pixels. One step turns at most about
+    // a fifth, so a fast or accelerated wheel cannot jump across the range.
+    const r = boardRect(), dy = Math.max(-120, Math.min(120, ev.deltaY * (ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? r.height : 1)));
+    zoomAt(Math.exp(-dy * (ev.ctrlKey ? 0.01 : 0.0015)), ev.clientX - r.left, ev.clientY - r.top);
 }
 function showSize(sizeId) {
     const size = recOf(state.doc, sizeId);

@@ -367,7 +367,7 @@
     "Clicks through the workflow from the start.": "最初からフローをクリックでたどります。",
     "Decisions:": "判断：",
     "Delete removes the selection, the arrows move it, Ctrl+D duplicates it, Ctrl+A selects all, Ctrl+Z undoes, Ctrl+S saves a copy.": "Delete で選択を削除、矢印キーで移動、Ctrl+D で複製、Ctrl+A ですべて選択、Ctrl+Z で元に戻す、Ctrl+S でコピーを保存。",
-    "Drag the background, scroll to pan, and hold Ctrl while scrolling to zoom. On a touch screen, pinch with two fingers.": "背景をドラッグするかスクロールで移動、Ctrl を押しながらスクロールで拡大・縮小します。タッチ画面では 2 本指でピンチします。",
+    "Drag the background to pan, and scroll to zoom. On a touch screen, pinch with two fingers.": "背景をドラッグして移動、スクロールで拡大・縮小します。タッチ画面では 2 本指でピンチします。",
     "Element to add": "追加する要素",
     "Export:": "書き出し：",
     "File, Export gives the whole workflow, the selected screens, one marked way or one screen, as a document that merges back, pictures, a storyboard, a report, a copy sheet or a sealed link.": "「ファイル」→「書き出し」で、フロー全体、選択した画面、選んだ道筋、または 1 つの画面を、後で統合できる文書、画像、ストーリーボード、レポート、文言シート、暗号化されたリンクとして書き出せます。",

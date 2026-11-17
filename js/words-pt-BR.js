@@ -367,7 +367,7 @@
     "Clicks through the workflow from the start.": "Percorre o fluxo desde o início, clique a clique.",
     "Decisions:": "Decisões:",
     "Delete removes the selection, the arrows move it, Ctrl+D duplicates it, Ctrl+A selects all, Ctrl+Z undoes, Ctrl+S saves a copy.": "Delete remove a seleção, as setas a movem, Ctrl+D a duplica, Ctrl+A seleciona tudo, Ctrl+Z desfaz, Ctrl+S salva uma cópia.",
-    "Drag the background, scroll to pan, and hold Ctrl while scrolling to zoom. On a touch screen, pinch with two fingers.": "Arraste o fundo, role para deslocar e segure Ctrl enquanto rola para aproximar ou afastar. Em uma tela de toque, faça o gesto de pinça com dois dedos.",
+    "Drag the background to pan, and scroll to zoom. On a touch screen, pinch with two fingers.": "Arraste o fundo para deslocar e role para aproximar ou afastar. Em uma tela de toque, faça o gesto de pinça com dois dedos.",
     "Element to add": "Elemento a adicionar",
     "Export:": "Exportar:",
     "File, Export gives the whole workflow, the selected screens, one marked way or one screen, as a document that merges back, pictures, a storyboard, a report, a copy sheet or a sealed link.": "Arquivo, Exportar entrega o fluxo inteiro, as telas selecionadas, um caminho marcado ou uma tela, como um documento que pode ser reincorporado, imagens, um storyboard, um relatório, uma planilha de textos ou um link selado.",

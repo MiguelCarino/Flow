@@ -367,7 +367,7 @@
     "Clicks through the workflow from the start.": "Проход по сценарию с начала, щелчок за щелчком.",
     "Decisions:": "Решения:",
     "Delete removes the selection, the arrows move it, Ctrl+D duplicates it, Ctrl+A selects all, Ctrl+Z undoes, Ctrl+S saves a copy.": "Delete удаляет выбранное, стрелки его двигают, Ctrl+D дублирует, Ctrl+A выбирает всё, Ctrl+Z отменяет, Ctrl+S сохраняет копию.",
-    "Drag the background, scroll to pan, and hold Ctrl while scrolling to zoom. On a touch screen, pinch with two fingers.": "Перетаскивайте фон или прокручивайте, чтобы двигаться, а для масштаба прокручивайте, удерживая Ctrl. На сенсорном экране сводите и разводите два пальца.",
+    "Drag the background to pan, and scroll to zoom. On a touch screen, pinch with two fingers.": "Перетаскивайте фон, чтобы двигаться, и прокручивайте для масштаба. На сенсорном экране сводите и разводите два пальца.",
     "Element to add": "Элемент для добавления",
     "Export:": "Экспорт:",
     "File, Export gives the whole workflow, the selected screens, one marked way or one screen, as a document that merges back, pictures, a storyboard, a report, a copy sheet or a sealed link.": "«Файл» → «Экспорт» выдаёт весь сценарий, выбранные экраны, один отмеченный путь или один экран — как документ, который можно влить обратно, картинки, раскадровку, отчёт, таблицу текстов или запечатанную ссылку.",
