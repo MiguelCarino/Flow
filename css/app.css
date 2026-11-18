@@ -358,7 +358,7 @@ body.on-landing .flow-actions { display: none !important; }
    short lede, one large target (which is also where a file is dropped), the
    example as a chip, and the workflows kept in this browser. With some kept
    the list moves above the target and the pitch shrinks to the claim. */
-.landing { position: fixed; inset: var(--nav-h) 0 0 0; z-index: 900; overflow-y: auto; display: flex; background: var(--stage-grad), var(--bg); color: var(--text); }
+.landing { position: fixed; inset: var(--nav-h) 0 0 0; z-index: 900; overflow-y: auto; scrollbar-gutter: stable both-edges; display: flex; background: var(--stage-grad), var(--bg); color: var(--text); }
 .landing[hidden] { display: none; }
 .landing-inner { margin-block: 0 auto; margin-inline: auto; width: min(1040px, 92%); padding: clamp(20px, 6vh, 72px) 0 clamp(16px, 3vh, 34px); display: flex; flex-direction: column; align-items: center; gap: clamp(16px, 3.4vh, 30px); }
 .landing-hero { order: 1; width: 100%; text-align: center; }

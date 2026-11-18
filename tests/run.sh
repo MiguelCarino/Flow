@@ -60,14 +60,15 @@ PY
 
     # A suite marked '@realtime' waits on Web Crypto or IndexedDB, which run
     # off the main thread: under a virtual clock the page looks idle and is
-    # dumped before they finish. Those run on the real clock, for a fixed time.
+    # dumped before they finish. Those run on the real clock, driven over the
+    # DevTools pipe until they report (tests/realclock.py): since Chromium 157,
+    # '--timeout' no longer holds '--dump-dom' back past the load event.
     if head -3 "$src" | grep -q '@realtime'; then
-        clock=(--timeout=20000)
+        dom=$(python3 tests/realclock.py "$CHROME" "http://127.0.0.1:$PORT/$RUNFILE" "$PROFILE" 30 2>/dev/null)
     else
-        clock=(--virtual-time-budget=8000)
+        dom=$("$CHROME" --headless --disable-gpu --no-sandbox --user-data-dir="$PROFILE" --window-size=1280,800 \
+              --virtual-time-budget=8000 --dump-dom "http://127.0.0.1:$PORT/$RUNFILE" 2>/dev/null)
     fi
-    dom=$("$CHROME" --headless --disable-gpu --no-sandbox --user-data-dir="$PROFILE" --window-size=1280,800 \
-          "${clock[@]}" --dump-dom "http://127.0.0.1:$PORT/$RUNFILE" 2>/dev/null)
 
     results=$(printf '%s' "$dom" | python3 -c '
 import sys, re, html

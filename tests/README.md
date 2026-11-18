@@ -23,7 +23,11 @@ pulls `css/` and `js/` by relative path.
 A suite whose first line says `@realtime` waits on Web Crypto or IndexedDB.
 Those run off the main thread, so under the virtual clock the page looks
 idle and is dumped before they finish. `run.sh` runs them on the real clock
-for a fixed time instead.
+instead, through `tests/realclock.py`: it drives the browser over its
+DevTools pipe (`--remote-debugging-pipe`, standard-library Python, no npm) and
+reads the page once it reports, giving up after 30 seconds. Since Chromium
+157, `--timeout` no longer holds `--dump-dom` back past the load event, so a
+fixed wait on the command line is not enough.
 
 ## Writing a suite
 

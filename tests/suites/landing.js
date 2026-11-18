@@ -17,7 +17,7 @@ suite(async (ok, eq) => {
     eq('the ways in: a new workflow, a file, the example', Array.from(landing.querySelectorAll('.landing-ways [data-act], .landing-chips [data-act]')).map((b) => b.dataset.act), ['landing-new', 'open', 'example']);
     ok('there is no Start drawing or Continue button, and no Your workflows popup', !document.getElementById('landingGo') && !landing.querySelector('[data-act="lib"]') && !document.getElementById('libDlg') && !/Continue your workflow/.test(landing.textContent));
     const mark = landing.querySelector('.landing-mark'), img = mark.querySelector('img.mk-gold').getBoundingClientRect(), runLine = mark.querySelector('.flowline').getBoundingClientRect();
-    ok('the mark is centred, with its animation under it', Math.abs((img.left + img.right) / 2 - innerWidth / 2) < 2 && Math.abs((runLine.left + runLine.right) / 2 - innerWidth / 2) < 2 && runLine.top >= img.bottom);
+    ok('the mark is centred, with its animation under it', Math.abs((img.left + img.right) / 2 - innerWidth / 2) < 2 && Math.abs((runLine.left + runLine.right) / 2 - innerWidth / 2) < 2 && runLine.top >= img.bottom, `mark ${img.left}-${img.right}, line ${runLine.left}-${runLine.right} top ${runLine.top}, mark bottom ${img.bottom}, window ${innerWidth}`);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true }));
     ok('the editor\'s keys do nothing under it', state.selection.size === 0);
 
